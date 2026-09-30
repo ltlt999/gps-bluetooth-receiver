@@ -316,18 +316,27 @@ public final class BluetoothLinkManager {
         }
 
         /**
-         * 创建 SPP 套接字：依次尝试 RFCOMM 通道 1-5（Android 分配通道不固定，1-5 都可能），
-         * 任一通道 connect 成功直接返回已连接的 socket；
-         * 都连不上则回退到 SDP 查询——SDP 会拿到发送端实际注册的通道
-         * （但 Android SDP 缓存可能返回旧通道，所以反射是首选路径）。
+         * 创建 SPP 套接字：
+         * 1. 优先 SDP 查询 —— 用 UUID 过滤，确保连到的是发送端注册的 SPP 服务（最准确，
+         *    避免反射直连撞上其它占用相同 RFCOMM 通道的蓝牙服务导致「连接成功但无数据」）
+         * 2. 回退反射直连通道 1-5 —— SDP 偶发拿不到结果时快速尝试常见通道
+         * 两路都失败抛 IOException 让上层判定为失败重连。
          */
         private BluetoothSocket createSocket(BluetoothDevice device) throws IOException {
-            java.lang.reflect.Method m = null;
+            BluetoothSocket sdpSocket = null;
             try {
-                m = device.getClass().getMethod("createInsecureRfcommSocket", int.class);
+                sdpSocket = device.createInsecureRfcommSocketToServiceRecord(uuid);
+                sdpSocket.connect();
+                return sdpSocket;
             } catch (Throwable ignored) {
+                if (sdpSocket != null) {
+                    try { sdpSocket.close(); } catch (Throwable x) {
+                    }
+                }
             }
-            if (m != null) {
+            try {
+                java.lang.reflect.Method m = device.getClass()
+                        .getMethod("createInsecureRfcommSocket", int.class);
                 for (int channel : new int[]{1, 2, 3, 4, 5}) {
                     BluetoothSocket socket = null;
                     try {
@@ -341,8 +350,9 @@ public final class BluetoothLinkManager {
                         }
                     }
                 }
+            } catch (Throwable ignored) {
             }
-            return device.createInsecureRfcommSocketToServiceRecord(uuid);
+            throw new IOException("SDP 查询失败且反射通道 1-5 均不可达");
         }
 
         void cancel() {
