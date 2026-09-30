@@ -287,7 +287,12 @@ public final class BluetoothLinkManager {
         @Override
         public void run() {
             try {
-                target = device.createInsecureRfcommSocketToServiceRecord(uuid);
+                target = createSocket(device);
+            } catch (IOException e) {
+                postState(BtState.FAILED, "创建套接字失败：" + e.getMessage());
+                return;
+            }
+            try {
                 target.connect();
             } catch (SecurityException e) {
                 postState(BtState.FAILED, "缺少蓝牙连接权限");
@@ -302,6 +307,21 @@ public final class BluetoothLinkManager {
                 return;
             }
             attach(target);
+        }
+
+        /**
+         * 创建 SPP 套接字：优先反射调用 createInsecureRfcommSocket(1) 直连 RFCOMM 通道 1，
+         * 完全绕过 SDP 查询——发送端刚关闭旧服务、注册新服务期间 SDP 查询会失败，
+         * 错位后会出现「两端都在重连但永远连不上」的现象。反射失败时回退到 SDP 查询。
+         */
+        private BluetoothSocket createSocket(BluetoothDevice device) throws IOException {
+            java.lang.reflect.Method m;
+            try {
+                m = device.getClass().getMethod("createInsecureRfcommSocket", int.class);
+                return (BluetoothSocket) m.invoke(device, 1);
+            } catch (Throwable ignored) {
+            }
+            return device.createInsecureRfcommSocketToServiceRecord(uuid);
         }
 
         void cancel() {
