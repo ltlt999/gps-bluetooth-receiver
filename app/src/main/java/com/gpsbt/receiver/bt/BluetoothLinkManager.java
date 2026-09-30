@@ -286,14 +286,20 @@ public final class BluetoothLinkManager {
 
         @Override
         public void run() {
+            BluetoothSocket socket;
             try {
-                target = createSocket(device);
+                socket = createSocket(device);
             } catch (IOException e) {
                 postState(BtState.FAILED, "创建套接字失败：" + e.getMessage());
                 return;
             }
+            target = socket;
+            // createSocket 返回时：反射路径成功则 socket 已连接（跳过 connect），
+            // SDP 路径则未连接（需要 connect 走 SDP 查询）。
             try {
-                target.connect();
+                if (!socket.isConnected()) {
+                    socket.connect();
+                }
             } catch (SecurityException e) {
                 postState(BtState.FAILED, "缺少蓝牙连接权限");
                 return;
@@ -310,15 +316,18 @@ public final class BluetoothLinkManager {
         }
 
         /**
-         * 创建 SPP 套接字：优先反射调用 createInsecureRfcommSocket(1) 直连 RFCOMM 通道 1，
-         * 完全绕过 SDP 查询——发送端刚关闭旧服务、注册新服务期间 SDP 查询会失败，
-         * 错位后会出现「两端都在重连但永远连不上」的现象。反射失败时回退到 SDP 查询。
+         * 创建 SPP 套接字：先尝试反射调用 createInsecureRfcommSocket(1) 直连 RFCOMM 通道 1
+         * （快速、绕过 SDP 时序问题）；连接成功直接返回已连接的 socket。
+         * 反射失败或直连被拒（发送端实际占用其它通道）则回退到 SDP 查询——SDP 会拿到
+         * 发送端真实分配的通道。两路都连不上则抛 IOException 让上层判定为失败重连。
          */
         private BluetoothSocket createSocket(BluetoothDevice device) throws IOException {
-            java.lang.reflect.Method m;
             try {
-                m = device.getClass().getMethod("createInsecureRfcommSocket", int.class);
-                return (BluetoothSocket) m.invoke(device, 1);
+                java.lang.reflect.Method m = device.getClass()
+                        .getMethod("createInsecureRfcommSocket", int.class);
+                BluetoothSocket socket = (BluetoothSocket) m.invoke(device, 1);
+                socket.connect();
+                return socket;
             } catch (Throwable ignored) {
             }
             return device.createInsecureRfcommSocketToServiceRecord(uuid);
