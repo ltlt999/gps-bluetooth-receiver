@@ -286,7 +286,7 @@ public final class NmeaParser {
     }
 
     /**
-     * 推断卫星所属星座：GSV talker 优先（GL/GA/GB/BD/GQ 明确指定星座）；
+     * 推断卫星所属系统：GSV talker 优先（GL/GA/GB/BD/GQ/GI 明确指定星座）；
      * GP / GN（含发送端统一用 GP 前缀的情况）按 PRN 编号段推断。
      */
     private static String constellationOf(String talker, int prn) {
@@ -301,6 +301,9 @@ public final class NmeaParser {
         }
         if ("GQ".equals(talker)) {
             return "QZSS";
+        }
+        if ("GI".equals(talker)) {
+            return "NavIC";
         }
         // GP / GN / 未知 talker：按编号段推断（Android GnssStatus 的 svid 区间）
         if (prn >= 1 && prn <= 32) {
@@ -320,6 +323,9 @@ public final class NmeaParser {
         }
         if (prn >= 301 && prn <= 336) {
             return "GAL";
+        }
+        if (prn >= 401 && prn <= 414) {
+            return "NavIC";
         }
         return null;
     }

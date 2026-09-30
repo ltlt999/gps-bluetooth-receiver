@@ -156,6 +156,19 @@ public class NmeaParserTest {
     }
 
     @Test
+    public void talkerOverridesPrnInference() {
+        RecordingListener listener = new RecordingListener();
+        NmeaParser parser = new NmeaParser(listener);
+        // BD talker 明确指定北斗：即使 PRN 06 落在 GPS 区间也判为 BDS
+        parser.handleLine("$BDGSV,1,1,01,06,45,100,42*59");
+        // GI talker：NavIC
+        parser.handleLine("$GIGSV,1,1,01,403,45,100,42*60");
+        assertEquals(2, listener.satelliteSets.size());
+        assertEquals("BDS", listener.satelliteSets.get(0).get(0).constellation);
+        assertEquals("NavIC", listener.satelliteSets.get(1).get(0).constellation);
+    }
+
+    @Test
     public void supportsGnTalker() {
         RecordingListener listener = new RecordingListener();
         NmeaParser parser = new NmeaParser(listener);

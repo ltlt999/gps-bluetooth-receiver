@@ -10,16 +10,18 @@
 - **持续接收不中断**：连接失败或蓝牙断开后自动重连（间隔 2→30 秒递增，连上即复位），服务一直运行直到用户手动停止；接收中切换设备立即生效
 - **NMEA 解析**：支持 GGA / RMC / GSA / GSV / VTG 语句，兼容 `GP` / `GN` 等 talker，逐句校验和验证
 - **实时显示**：经纬度、海拔、速度、航向、卫星（使用/可见数）、UTC 时间与数据新鲜度
-- **卫星详情**：逐颗列出编号、星座（🇺🇸GPS / 🇨🇳北斗 / 🇷🇺GLONASS / 🇪🇺Galileo 国旗标识）、信噪比、仰角、方位角
+- **卫星详情**：逐颗列出编号、卫星系统（🇺🇸GPS / 🇨🇳北斗 / 🇷🇺GLONASS / 🇪🇺Galileo / 🇯🇵QZSS / 🇮🇳NavIC 国旗标识）、信噪比、仰角、方位角
 - **接收统计**：语句数、字节数、平均速率、校验错误数
 - **横竖屏自适应**：竖屏单列浏览；横屏左（连接）右（定位+统计）两大卡，底部卫星详情，首屏完整显示定位信息
 - **接收日志**：右上角按钮弹窗查看，实时滚动，可一键清空
+
+> 卫星系统识别：优先按 GSV 语句的 talker（`$BD`/`$GL`/`$GA`/`$GI`…）判断；发送端 v1.1.0 起按星座分组发送，老版本发送端（统一 `$GP` 前缀）则按卫星编号段推断。
 - **后台稳定接收**：前台服务（`connectedDevice` 类型）保持链路，通知栏显示最新坐标并可直接停止
 - **开机自动接收**：设置里开启后，开机自动按上次的模式和设备开始接收（兼容车机 QUICKBOOT，蓝牙未就绪时自动等待）。采用双保险：开机广播 + 界面冷启动兜底（部分 ROM 不投递广播而是直接拉起界面）；进程被系统杀掉后服务会带原参数自动恢复
 
 ## 📦 安装
 
-- 到 [Releases](https://github.com/ltlt999/gps-bluetooth-receiver/releases) 下载最新 APK（release 签名版）安装
+- 到 [Releases](https://github.com/ltlt999/gps-bluetooth-receiver/releases) 下载最新 APK（release 签名版）安装；发送端请到 [gps-bluetooth-transfer](https://github.com/ltlt999/gps-bluetooth-transfer) 获取
 - 或用 Android Studio 打开本工程自行构建（release 构建需自备 `release.keystore` 与 `keystore.properties`，二者不入库）
 
 系统要求：Android 7.0（API 24）及以上；需与发送端先在系统蓝牙设置中完成配对。

@@ -21,7 +21,7 @@ import java.util.Locale;
 /** 卫星明细列表：编号、星座（国旗）、信噪比、仰角、方位角。 */
 public final class SatelliteAdapter extends RecyclerView.Adapter<SatelliteAdapter.Holder> {
 
-    private static final String[] CONST_ORDER = {"GPS", "BDS", "GLN", "GAL", "QZSS", "SBAS"};
+    private static final String[] CONST_ORDER = {"GPS", "BDS", "GLN", "GAL", "QZSS", "SBAS", "NavIC"};
 
     private final List<NmeaParser.Sat> items = new ArrayList<>();
 
@@ -105,6 +105,8 @@ public final class SatelliteAdapter extends RecyclerView.Adapter<SatelliteAdapte
                 return R.drawable.flag_gal;
             case "QZSS":
                 return R.drawable.flag_qzss;
+            case "NavIC":
+                return R.drawable.flag_navic;
             default:
                 return R.drawable.flag_unknown;
         }

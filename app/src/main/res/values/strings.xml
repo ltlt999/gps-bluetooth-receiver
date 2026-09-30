@@ -58,7 +58,7 @@
     <!-- 卫星详情 -->
     <string name="sat_detail_title">卫星详情</string>
     <string name="label_satellite_prn">编号</string>
-    <string name="label_satellite_const">星座</string>
+    <string name="label_satellite_const">卫星系统</string>
     <string name="label_satellite_snr">信噪比</string>
     <string name="label_satellite_elev">仰角</string>
     <string name="label_satellite_azim">方位角</string>
