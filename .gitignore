@@ -1,0 +1,16 @@
+*.iml
+.gradle
+/local.properties
+/.idea
+.DS_Store
+/build
+/app/build
+/captures
+.externalNativeBuild
+.cxx
+*.apk
+*.aab
+
+# 签名凭据：绝不入库（公开仓库尤其注意）
+/keystore.properties
+/release.keystore

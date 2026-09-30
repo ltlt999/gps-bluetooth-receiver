@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="color_background_start">#0A0E1A</color>
+    <color name="color_background_end">#0D1526</color>
+    <color name="color_card">#141C31</color>
+    <color name="color_card_stroke">#223050</color>
+    <color name="color_primary">#00E5C7</color>
+    <color name="color_primary_dark">#00A88F</color>
+    <color name="color_accent_blue">#3D8BFF</color>
+    <color name="color_warning">#FF8A3D</color>
+    <color name="color_error">#FF5C6C</color>
+    <color name="color_text_primary">#E6EDF7</color>
+    <color name="color_text_secondary">#8A97B0</color>
+    <color name="color_text_disabled">#4A5878</color>
+    <color name="color_ic_launcher_background">#0A0E1A</color>
+</resources>

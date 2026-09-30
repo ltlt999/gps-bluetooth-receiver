@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- 接收波纹：三道弧自上而下向天线汇聚 -->
+    <path
+        android:strokeColor="#3D8BFF"
+        android:strokeWidth="3"
+        android:strokeLineCap="round"
+        android:fillColor="#00000000"
+        android:pathData="M38.2,29.2 A21,21 0 0,1 69.8,29.2" />
+    <path
+        android:strokeColor="#3D8BFF"
+        android:strokeWidth="3"
+        android:strokeLineCap="round"
+        android:fillColor="#00000000"
+        android:pathData="M42.7,33.4 A15,15 0 0,1 65.3,33.4" />
+    <path
+        android:strokeColor="#00E5C7"
+        android:strokeWidth="3"
+        android:strokeLineCap="round"
+        android:fillColor="#00000000"
+        android:pathData="M47.6,37.6 A9,9 0 0,1 60.4,37.6" />
+    <!-- 馈源与支架 -->
+    <path
+        android:fillColor="#00E5C7"
+        android:pathData="M54,50m-4.5,0a4.5,4.5 0 1,0 9,0a4.5,4.5 0 1,0 -9,0" />
+    <path
+        android:strokeColor="#E6EDF7"
+        android:strokeWidth="3"
+        android:fillColor="#00000000"
+        android:pathData="M54,53L54,60" />
+    <path
+        android:fillColor="#8A97B0"
+        android:pathData="M52,74h4v10h-4z" />
+    <path
+        android:fillColor="#8A97B0"
+        android:pathData="M44,84h20v3h-20z" />
+    <!-- 碗状天线 -->
+    <path
+        android:fillColor="#E6EDF7"
+        android:pathData="M36,60A18,18 0 0,0 72,60Z" />
+</vector>

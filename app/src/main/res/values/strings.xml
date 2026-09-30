@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">GPS接收器</string>
+
+    <!-- 通知 -->
+    <string name="channel_receive_name">接收状态</string>
+    <string name="channel_receive_desc">显示 GPS 数据接收状态</string>
+    <string name="notif_receiving">正在接收 GPS 数据</string>
+    <string name="notif_waiting">等待发送端连接</string>
+    <string name="notif_connecting">正在连接发送端</string>
+    <string name="notif_connected_to">已连接 %1$s</string>
+    <string name="notif_no_data">已连接，尚未收到有效定位</string>
+    <string name="notif_action_stop">停止接收</string>
+
+    <!-- 连接卡片 -->
+    <string name="mode_client">连接发送端</string>
+    <string name="mode_server">等待发送端连接</string>
+    <string name="btn_start">开始接收</string>
+    <string name="btn_stop">停止接收</string>
+    <string name="label_selected_device">发送端设备</string>
+    <string name="btn_choose_device">选择</string>
+    <string name="selected_none">未选择发送端设备</string>
+    <string name="dialog_choose_device">选择发送端设备</string>
+    <string name="paired_devices_empty">暂无已配对设备，请先在系统设置中与发送端配对</string>
+    <string name="status_idle">未开始</string>
+    <string name="status_waiting">等待发送端连接…</string>
+    <string name="status_connecting">正在连接发送端…</string>
+    <string name="status_connected">已连接，正在接收数据</string>
+    <string name="status_failed">连接失败</string>
+
+    <!-- 定位卡片 -->
+    <string name="fix_title">定位数据</string>
+    <string name="fix_valid">定位有效</string>
+    <string name="fix_invalid">定位无效</string>
+    <string name="fix_none">暂无数据</string>
+    <string name="label_latitude">纬度</string>
+    <string name="label_longitude">经度</string>
+    <string name="label_altitude">海拔</string>
+    <string name="label_speed">速度</string>
+    <string name="label_course">航向</string>
+    <string name="label_satellites">卫星</string>
+    <string name="label_utc">UTC 时间</string>
+    <string name="label_updated">更新</string>
+    <string name="unit_altitude">%1$s 米</string>
+    <string name="unit_speed">%1$s 米/秒</string>
+    <string name="unit_course">%1$s°</string>
+    <string name="sat_summary">%1$d 使用 / %2$d 可见</string>
+    <string name="ago_seconds">%1$d 秒前</string>
+
+    <!-- 统计卡片 -->
+    <string name="stats_title">接收统计</string>
+    <string name="label_sentences">语句数</string>
+    <string name="label_bytes">字节数</string>
+    <string name="label_rate">速率</string>
+    <string name="label_bad_checksum">校验错误</string>
+    <string name="unit_rate">%1$s 句/秒</string>
+
+    <!-- 日志卡片 -->
+    <string name="log_title">接收日志</string>
+    <string name="log_clear">清空</string>
+
+    <!-- 权限 -->
+    <string name="permission_bluetooth_needed">需要蓝牙连接权限才能接收数据，请在弹窗中允许</string>
+    <string name="permission_notifications_needed">需要通知权限以保持后台接收</string>
+    <string name="bluetooth_unavailable">设备不支持蓝牙或蓝牙未开启</string>
+
+    <!-- 设置 -->
+    <string name="settings_title">设置</string>
+    <string name="auto_start_title">开机自动开始接收</string>
+    <string name="auto_start_summary">开机后按上次的模式和设备自动开始接收</string>
+    <string name="wait_bluetooth">等待蓝牙开启…</string>
+
+    <!-- 开机自启 -->
+    <string name="boot_channel_name">自动接收状态</string>
+    <string name="boot_channel_desc">开机自动接收未能启动时的原因说明</string>
+    <string name="boot_blocked_title">GPS接收器未自动启动</string>
+    <string name="boot_reason_no_permission">缺少蓝牙连接权限，无法自动接收</string>
+    <string name="boot_reason_no_bluetooth">设备不支持蓝牙，无法自动接收</string>
+    <string name="boot_reason_no_device">未选择发送端设备，无法自动接收</string>
+    <string name="boot_reason_bluetooth_off">蓝牙未开启，自动接收未启动</string>
+</resources>
