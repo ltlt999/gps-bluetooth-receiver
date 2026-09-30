@@ -49,6 +49,8 @@ public final class NmeaParser {
         public float azimuthDeg = Float.NaN;
         public float snr = Float.NaN;
         public boolean used;
+        /** 星座：GPS / BDS / GLN / GAL / QZSS / SBAS，无法判断时为 null。 */
+        public String constellation;
     }
 
     private static final long MAX_BUFFER = 8192;
@@ -62,6 +64,10 @@ public final class NmeaParser {
     private final List<Sat> pendingSatellites = new ArrayList<>();
     private int gsvTotalPages;
     private int gsvInView = -1;
+    /** 当前正在处理的语句的 talker（GP/GL/GA/GB…）。 */
+    private String currentTalker;
+    /** 当前 GSV 块的 talker（GP/GL/GA/GB…），每块 GSV 对应一个星座。 */
+    private String gsvTalker;
     /** RMC 提供的日期（ddMMyy），用于把 GGA 的时间补全成完整 UTC。 */
     private int lastDay = -1;
     private int lastMonth = -1;
@@ -137,6 +143,8 @@ public final class NmeaParser {
         String address = fields[0];
         String type = address.length() >= 3
                 ? address.substring(address.length() - 3).toUpperCase(Locale.US) : "";
+        currentTalker = address.length() > 3
+                ? address.substring(0, address.length() - 3).toUpperCase(Locale.US) : "";
         try {
             switch (type) {
                 case "GGA":
@@ -238,6 +246,7 @@ public final class NmeaParser {
         gsvInView = parseInt(f[3], gsvInView);
         if (page <= 1) {
             pendingSatellites.clear();
+            gsvTalker = currentTalker;
         }
         int index = 4;
         while (index + 3 < f.length) {
@@ -249,6 +258,7 @@ public final class NmeaParser {
                 sat.azimuthDeg = parseFloat(f[index + 2], Float.NaN);
                 sat.snr = f[index + 3].isEmpty() ? Float.NaN : parseFloat(f[index + 3], Float.NaN);
                 sat.used = usedPrns.contains(prn);
+                sat.constellation = constellationOf(gsvTalker, prn);
                 pendingSatellites.add(sat);
             }
             index += 4;
@@ -273,6 +283,45 @@ public final class NmeaParser {
             latest.courseDeg = track;
         }
         emitFix();
+    }
+
+    /**
+     * 推断卫星所属星座：GSV talker 优先（GL/GA/GB/BD/GQ 明确指定星座）；
+     * GP / GN（含发送端统一用 GP 前缀的情况）按 PRN 编号段推断。
+     */
+    private static String constellationOf(String talker, int prn) {
+        if ("GL".equals(talker)) {
+            return "GLN";
+        }
+        if ("GA".equals(talker)) {
+            return "GAL";
+        }
+        if ("GB".equals(talker) || "BD".equals(talker)) {
+            return "BDS";
+        }
+        if ("GQ".equals(talker)) {
+            return "QZSS";
+        }
+        // GP / GN / 未知 talker：按编号段推断（Android GnssStatus 的 svid 区间）
+        if (prn >= 1 && prn <= 32) {
+            return "GPS";
+        }
+        if (prn >= 65 && prn <= 96) {
+            return "GLN";
+        }
+        if (prn >= 120 && prn <= 158) {
+            return "SBAS";
+        }
+        if (prn >= 193 && prn <= 200) {
+            return "QZSS";
+        }
+        if (prn >= 201 && prn <= 237) {
+            return "BDS";
+        }
+        if (prn >= 301 && prn <= 336) {
+            return "GAL";
+        }
+        return null;
     }
 
     private void emitFix() {

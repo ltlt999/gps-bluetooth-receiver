@@ -32,6 +32,7 @@ import com.gpsbt.receiver.service.ReceiverService;
 import com.gpsbt.receiver.state.LogBus;
 import com.gpsbt.receiver.state.ReceiverState;
 import com.gpsbt.receiver.ui.adapter.LogAdapter;
+import com.gpsbt.receiver.ui.adapter.SatelliteAdapter;
 import com.gpsbt.receiver.util.Formatters;
 import com.gpsbt.receiver.util.Prefs;
 
@@ -40,9 +41,9 @@ import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 
-/** 主界面：连接控制、定位显示、统计与日志。 */
+/** 主界面：连接控制、定位显示、统计与卫星详情。 */
 public class MainActivity extends AppCompatActivity
-        implements ReceiverState.Listener, LogBus.Listener {
+        implements ReceiverState.Listener {
 
     private static final SimpleDateFormat UTC_FORMAT =
             new SimpleDateFormat("HH:mm:ss", Locale.US);
@@ -81,7 +82,10 @@ public class MainActivity extends AppCompatActivity
     private TextView tvBytes;
     private TextView tvRate;
     private TextView tvBadChecksum;
-    private RecyclerView rvLog;
+    private RecyclerView rvSatellites;
+    private TextView tvSatEmpty;
+
+    private SatelliteAdapter satelliteAdapter;
 
     private final Runnable ticker = new Runnable() {
         @Override
@@ -90,8 +94,6 @@ public class MainActivity extends AppCompatActivity
             main.postDelayed(this, 1000L);
         }
     };
-
-    private final LogAdapter log = new LogAdapter();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -121,17 +123,26 @@ public class MainActivity extends AppCompatActivity
         tvBytes = findViewById(R.id.tvBytes);
         tvRate = findViewById(R.id.tvRate);
         tvBadChecksum = findViewById(R.id.tvBadChecksum);
-        rvLog = findViewById(R.id.rvLog);
+        rvSatellites = findViewById(R.id.rvSatellites);
+        tvSatEmpty = findViewById(R.id.tvSatEmpty);
         tvSelectedDevice = findViewById(R.id.tvSelectedDevice);
         btnChooseDevice = findViewById(R.id.btnChooseDevice);
 
-        rvLog.setLayoutManager(new LinearLayoutManager(this));
-        rvLog.setAdapter(log);
+        satelliteAdapter = new SatelliteAdapter();
+        rvSatellites.setLayoutManager(new LinearLayoutManager(this));
+        rvSatellites.setAdapter(satelliteAdapter);
 
         btnChooseDevice.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 showDeviceDialog();
+            }
+        });
+
+        findViewById(R.id.btnLog).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                showLogDialog();
             }
         });
 
@@ -153,13 +164,6 @@ public class MainActivity extends AppCompatActivity
                 toggleReceive();
             }
         });
-        findViewById(R.id.btnClearLog).setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                LogBus.get().clear();
-                log.clear();
-            }
-        });
 
         findViewById(R.id.btnSettings).setOnClickListener(new View.OnClickListener() {
             @Override
@@ -171,15 +175,12 @@ public class MainActivity extends AppCompatActivity
         // 开机自启兜底：部分 ROM 不投递开机广播而是直接拉起界面，
         // 此时由界面冷启动补一次自动开始接收（开关关闭时什么都不做）
         BootAutoStart.tryStart(this);
-
-        log.reload(LogBus.get().entries());
     }
 
     @Override
     protected void onResume() {
         super.onResume();
         state.addListener(this);
-        LogBus.get().addListener(this);
         main.post(ticker);
         ensurePermissions();
         refreshAll();
@@ -190,7 +191,6 @@ public class MainActivity extends AppCompatActivity
         super.onPause();
         main.removeCallbacks(ticker);
         state.removeListener(this);
-        LogBus.get().removeListener(this);
     }
 
     // ---------- 权限 ----------
@@ -335,18 +335,61 @@ public class MainActivity extends AppCompatActivity
         refreshAll();
     }
 
-    @Override
-    public void onLog(LogBus.Entry entry) {
-        log.append(entry);
-        rvLog.scrollToPosition(Math.max(0, log.getItemCount() - 1));
-    }
-
     private void refreshAll() {
         refreshHeader();
         refreshConnection();
         refreshFix();
         refreshStats();
+        refreshSatellites();
         refreshDynamic();
+    }
+
+    /** 卫星详情列表：跟随状态刷新，参与定位的卫星在行内高亮。 */
+    private void refreshSatellites() {
+        List<NmeaParser.Sat> satellites = state.satellites();
+        satelliteAdapter.submit(satellites);
+        tvSatEmpty.setVisibility(satellites == null || satellites.isEmpty()
+                ? View.VISIBLE : View.GONE);
+    }
+
+    /** 日志弹窗：打开期间实时追加新日志，可一键清空。 */
+    private void showLogDialog() {
+        View content = getLayoutInflater().inflate(R.layout.dialog_log, null);
+        final RecyclerView rvLog = content.findViewById(R.id.rvLog);
+        rvLog.setLayoutManager(new LinearLayoutManager(this));
+        final LogAdapter logAdapter = new LogAdapter();
+        logAdapter.reload(LogBus.get().entries());
+        rvLog.setAdapter(logAdapter);
+        rvLog.scrollToPosition(Math.max(0, logAdapter.getItemCount() - 1));
+
+        final LogBus.Listener listener = new LogBus.Listener() {
+            @Override
+            public void onLog(LogBus.Entry entry) {
+                logAdapter.append(entry);
+                rvLog.scrollToPosition(Math.max(0, logAdapter.getItemCount() - 1));
+            }
+        };
+        LogBus.get().addListener(listener);
+
+        AlertDialog dialog = new AlertDialog.Builder(this)
+                .setTitle(R.string.log_title)
+                .setView(content)
+                .setNeutralButton(R.string.log_clear, new android.content.DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(android.content.DialogInterface d, int which) {
+                        LogBus.get().clear();
+                        logAdapter.clear();
+                    }
+                })
+                .setPositiveButton(android.R.string.ok, null)
+                .create();
+        dialog.setOnDismissListener(new android.content.DialogInterface.OnDismissListener() {
+            @Override
+            public void onDismiss(android.content.DialogInterface d) {
+                LogBus.get().removeListener(listener);
+            }
+        });
+        dialog.show();
     }
 
     private void refreshHeader() {

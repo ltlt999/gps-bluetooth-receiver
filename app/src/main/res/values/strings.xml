@@ -55,9 +55,19 @@
     <string name="label_bad_checksum">校验错误</string>
     <string name="unit_rate">%1$s 句/秒</string>
 
+    <!-- 卫星详情 -->
+    <string name="sat_detail_title">卫星详情</string>
+    <string name="label_satellite_prn">编号</string>
+    <string name="label_satellite_const">星座</string>
+    <string name="label_satellite_snr">信噪比</string>
+    <string name="label_satellite_elev">仰角</string>
+    <string name="label_satellite_azim">方位角</string>
+    <string name="sat_none">尚未收到卫星信息</string>
+
     <!-- 日志卡片 -->
     <string name="log_title">接收日志</string>
     <string name="log_clear">清空</string>
+    <string name="btn_log">日志</string>
 
     <!-- 权限 -->
     <string name="permission_bluetooth_needed">需要蓝牙连接权限才能接收数据，请在弹窗中允许</string>

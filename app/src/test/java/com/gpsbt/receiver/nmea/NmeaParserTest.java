@@ -143,6 +143,19 @@ public class NmeaParserTest {
     }
 
     @Test
+    public void infersConstellationFromPrn() {
+        RecordingListener listener = new RecordingListener();
+        NmeaParser parser = new NmeaParser(listener);
+        // 发送端统一使用 GP 前缀：1-32 视为 GPS，201-237 视为北斗
+        parser.handleLine("$GPGSV,1,1,02,06,45,100,42,206,60,150,45*4C");
+        assertEquals(1, listener.satelliteSets.size());
+        List<NmeaParser.Sat> satellites = listener.satelliteSets.get(0);
+        assertEquals(2, satellites.size());
+        assertEquals("GPS", satellites.get(0).constellation);
+        assertEquals("BDS", satellites.get(1).constellation);
+    }
+
+    @Test
     public void supportsGnTalker() {
         RecordingListener listener = new RecordingListener();
         NmeaParser parser = new NmeaParser(listener);

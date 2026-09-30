@@ -15,7 +15,7 @@
         android:paddingTop="20dp"
         android:paddingBottom="32dp">
 
-        <!-- 标题与状态 -->
+        <!-- 标题 / 状态 / 日志 / 设置 -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -31,15 +31,6 @@
                 android:textSize="26sp"
                 android:textStyle="bold" />
 
-            <ImageButton
-                android:id="@+id/btnSettings"
-                android:layout_width="40dp"
-                android:layout_height="40dp"
-                android:layout_marginEnd="10dp"
-                android:background="?attr/selectableItemBackgroundBorderless"
-                android:contentDescription="@string/settings_title"
-                android:src="@drawable/ic_settings" />
-
             <TextView
                 android:id="@+id/statusPill"
                 android:layout_width="wrap_content"
@@ -52,6 +43,23 @@
                 android:text="@string/status_idle"
                 android:textColor="@color/color_text_secondary"
                 android:textSize="13sp" />
+
+            <ImageButton
+                android:id="@+id/btnLog"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:layout_marginStart="10dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="@string/btn_log"
+                android:src="@drawable/ic_log" />
+
+            <ImageButton
+                android:id="@+id/btnSettings"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="@string/settings_title"
+                android:src="@drawable/ic_settings" />
         </LinearLayout>
 
         <!-- 连接 -->
@@ -73,10 +81,10 @@
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
                     android:layout_marginEnd="6dp"
-                    android:text="@string/mode_client"
-                    android:textSize="13sp"
                     android:insetTop="0dp"
-                    android:insetBottom="0dp" />
+                    android:insetBottom="0dp"
+                    android:text="@string/mode_client"
+                    android:textSize="13sp" />
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/btnModeServer"
@@ -84,10 +92,10 @@
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
                     android:layout_marginStart="6dp"
-                    android:text="@string/mode_server"
-                    android:textSize="13sp"
                     android:insetTop="0dp"
-                    android:insetBottom="0dp" />
+                    android:insetBottom="0dp"
+                    android:text="@string/mode_server"
+                    android:textSize="13sp" />
             </LinearLayout>
 
             <TextView
@@ -166,7 +174,7 @@
                 android:textStyle="bold" />
         </LinearLayout>
 
-        <!-- 定位 -->
+        <!-- 定位数据 + 接收统计 -->
         <LinearLayout
             style="@style/Widget.GpsReceiver.Card"
             android:layout_width="match_parent"
@@ -265,13 +273,6 @@
                         android:text="--"
                         android:textAppearance="@style/TextAppearance.GpsReceiver.Value" />
                 </LinearLayout>
-            </LinearLayout>
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="10dp"
-                android:orientation="horizontal">
 
                 <LinearLayout
                     android:layout_width="0dp"
@@ -293,6 +294,13 @@
                         android:text="--"
                         android:textAppearance="@style/TextAppearance.GpsReceiver.Value" />
                 </LinearLayout>
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:orientation="horizontal">
 
                 <LinearLayout
                     android:layout_width="0dp"
@@ -314,13 +322,6 @@
                         android:text="--"
                         android:textAppearance="@style/TextAppearance.GpsReceiver.Value" />
                 </LinearLayout>
-            </LinearLayout>
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="10dp"
-                android:orientation="horizontal">
 
                 <LinearLayout
                     android:layout_width="0dp"
@@ -364,27 +365,25 @@
                         android:textAppearance="@style/TextAppearance.GpsReceiver.Value" />
                 </LinearLayout>
             </LinearLayout>
-        </LinearLayout>
 
-        <!-- 统计 -->
-        <LinearLayout
-            style="@style/Widget.GpsReceiver.Card"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="14dp"
-            android:orientation="vertical">
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:layout_marginTop="14dp"
+                android:background="@color/color_card_stroke" />
 
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
                 android:text="@string/stats_title"
                 android:textAppearance="@style/TextAppearance.GpsReceiver.Title"
-                android:textSize="17sp" />
+                android:textSize="15sp" />
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
+                android:layout_marginTop="10dp"
                 android:orientation="horizontal">
 
                 <LinearLayout
@@ -480,7 +479,7 @@
             </LinearLayout>
         </LinearLayout>
 
-        <!-- 日志 -->
+        <!-- 卫星详情 -->
         <LinearLayout
             style="@style/Widget.GpsReceiver.Card"
             android:layout_width="match_parent"
@@ -488,35 +487,76 @@
             android:layout_marginTop="14dp"
             android:orientation="vertical">
 
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/sat_detail_title"
+                android:textAppearance="@style/TextAppearance.GpsReceiver.Title"
+                android:textSize="17sp" />
+
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:gravity="center_vertical"
+                android:layout_marginTop="10dp"
                 android:orientation="horizontal">
+
+                <TextView
+                    android:layout_width="44dp"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:text="@string/label_satellite_prn"
+                    android:textAppearance="@style/TextAppearance.GpsReceiver.Body"
+                    android:textSize="12sp" />
+
+                <TextView
+                    android:layout_width="76dp"
+                    android:layout_height="wrap_content"
+                    android:text="@string/label_satellite_const"
+                    android:textAppearance="@style/TextAppearance.GpsReceiver.Body"
+                    android:textSize="12sp" />
 
                 <TextView
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:text="@string/log_title"
-                    android:textAppearance="@style/TextAppearance.GpsReceiver.Title"
-                    android:textSize="17sp" />
+                    android:text="@string/label_satellite_snr"
+                    android:textAppearance="@style/TextAppearance.GpsReceiver.Body"
+                    android:textSize="12sp" />
 
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btnClearLog"
-                    style="@style/Widget.Material3.Button.TextButton"
-                    android:layout_width="wrap_content"
+                <TextView
+                    android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    android:minWidth="0dp"
-                    android:text="@string/log_clear"
-                    android:textSize="13sp" />
+                    android:layout_weight="1"
+                    android:text="@string/label_satellite_elev"
+                    android:textAppearance="@style/TextAppearance.GpsReceiver.Body"
+                    android:textSize="12sp" />
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="@string/label_satellite_azim"
+                    android:textAppearance="@style/TextAppearance.GpsReceiver.Body"
+                    android:textSize="12sp" />
             </LinearLayout>
 
             <androidx.recyclerview.widget.RecyclerView
-                android:id="@+id/rvLog"
+                android:id="@+id/rvSatellites"
                 android:layout_width="match_parent"
-                android:layout_height="220dp"
-                android:layout_marginTop="4dp" />
+                android:layout_height="240dp"
+                android:layout_marginTop="2dp"
+                android:nestedScrollingEnabled="true"
+                android:overScrollMode="never" />
+
+            <TextView
+                android:id="@+id/tvSatEmpty"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:text="@string/sat_none"
+                android:textAppearance="@style/TextAppearance.GpsReceiver.Body"
+                android:textSize="12sp"
+                android:visibility="gone" />
         </LinearLayout>
     </LinearLayout>
 </ScrollView>
