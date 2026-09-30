@@ -61,6 +61,10 @@ public final class NmeaParser {
     /** 跨语句累积的定位状态：GGA 与 RMC 各自带一部分字段，合并后输出。 */
     private final Fix latest = new Fix();
     private final Set<Integer> usedPrns = new HashSet<>();
+    /** 当前周期的累计可见卫星列表：每个 GSV 组完成时追加，避免覆盖造成只显示一个星座的数量。 */
+    private final List<Sat> completedSatellites = new ArrayList<>();
+    /** 标记新一周期开始（由 handleGga 触发），下一个 GSV 页 1 来时清空已完成列表。 */
+    private boolean gsvEpochReset;
     private final List<Sat> pendingSatellites = new ArrayList<>();
     private int gsvTotalPages;
     private int gsvInView = -1;
@@ -187,6 +191,7 @@ public final class NmeaParser {
         }
         latest.altitudeM = parseFloat(f[9], Double.NaN);
         emitFix();
+        gsvEpochReset = true; // GGA 标志新周期：下一个 GSV 页 1 时清空累积列表
     }
 
     private void handleRmc(String[] f) {
@@ -245,6 +250,10 @@ public final class NmeaParser {
         int page = parseInt(f[2], 1);
         gsvInView = parseInt(f[3], gsvInView);
         if (page <= 1) {
+            if (gsvEpochReset) {
+                completedSatellites.clear();
+                gsvEpochReset = false;
+            }
             pendingSatellites.clear();
             gsvTalker = currentTalker;
         }
@@ -264,8 +273,11 @@ public final class NmeaParser {
             index += 4;
         }
         if (page >= totalPages && !pendingSatellites.isEmpty()) {
-            listener.onSatellites(new ArrayList<Sat>(pendingSatellites), gsvInView);
-            latest.satellitesInView = gsvInView;
+            // 当前星座组的卫星合并到累计列表，输出所有星座总可见数
+            completedSatellites.addAll(pendingSatellites);
+            pendingSatellites.clear();
+            latest.satellitesInView = completedSatellites.size();
+            listener.onSatellites(new ArrayList<>(completedSatellites), completedSatellites.size());
         }
     }
 

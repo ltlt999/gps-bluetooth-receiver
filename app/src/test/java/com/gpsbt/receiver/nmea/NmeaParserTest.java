@@ -143,6 +143,25 @@ public class NmeaParserTest {
     }
 
     @Test
+    public void accumulatesSatellitesAcrossConstellations() {
+        // 一个周期里 GGA + 多个星座 GSV：卫星总数应是各星座之和，而不是被最后一个覆盖
+        RecordingListener listener = new RecordingListener();
+        NmeaParser parser = new NmeaParser(listener);
+        parser.handleLine("$GPGGA,123519,4807.038,N,01131.000,E,1,08,0.9,545.4,M,46.9,M,,*47");
+        parser.handleLine("$GPGSV,1,1,03,06,45,100,42,12,40,300,41,14,20,228,45*45");
+        parser.handleLine("$BDGSV,1,1,02,206,55,210,40,212,30,150,33*6F");
+        // 第二次 GGA 开启新周期
+        parser.handleLine("$GPGGA,123520,4807.038,N,01131.000,E,1,08,0.9,545.4,M,46.9,M,,*4D");
+        parser.handleLine("$BDGSV,1,1,01,206,55,210,40*6A");
+        // 第一次：GPS(3) 完成 emit 3；BD(2) 完成 emit 5（累加）
+        assertEquals(3, listener.satelliteSets.size());
+        assertEquals(3, listener.satelliteSets.get(0).size());
+        assertEquals(5, listener.satelliteSets.get(1).size());
+        // 新周期：之前已清零，仅 BD 1 颗 → emit 1
+        assertEquals(1, listener.satelliteSets.get(2).size());
+    }
+
+    @Test
     public void infersConstellationFromPrn() {
         RecordingListener listener = new RecordingListener();
         NmeaParser parser = new NmeaParser(listener);
@@ -160,8 +179,10 @@ public class NmeaParserTest {
         RecordingListener listener = new RecordingListener();
         NmeaParser parser = new NmeaParser(listener);
         // BD talker 明确指定北斗：即使 PRN 06 落在 GPS 区间也判为 BDS
+        parser.handleLine("$GPGGA,123519,4807.038,N,01131.000,E,1,08,0.9,545.4,M,46.9,M,,*47");
         parser.handleLine("$BDGSV,1,1,01,06,45,100,42*59");
-        // GI talker：NavIC
+        // 新周期由下一个 GGA 开启
+        parser.handleLine("$GPGGA,123520,4807.038,N,01131.000,E,1,08,0.9,545.4,M,46.9,M,,*4D");
         parser.handleLine("$GIGSV,1,1,01,403,45,100,42*60");
         assertEquals(2, listener.satelliteSets.size());
         assertEquals("BDS", listener.satelliteSets.get(0).get(0).constellation);

@@ -11,7 +11,9 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.pm.ServiceInfo;
 import android.os.Build;
+import android.os.Handler;
 import android.os.IBinder;
+import android.os.Looper;
 
 import androidx.core.app.NotificationCompat;
 import androidx.core.app.ServiceCompat;
@@ -60,6 +62,7 @@ public class ReceiverService extends Service {
     private BluetoothLinkManager link;
     private NmeaParser parser;
     private long lastNotificationAt;
+    private final Handler main = new Handler(Looper.getMainLooper());
     private volatile boolean fromBoot;
     private volatile ConnectionMode pendingMode;
     private volatile String pendingMac;
@@ -164,17 +167,39 @@ public class ReceiverService extends Service {
             return START_NOT_STICKY;
         }
 
+        // Android 12+ 在刚停掉一个前台服务后短时间内不允许再启动（"频繁启停"限制），
+        // 用户连续点「停止→开始」时会被拒。失败一次后等 1.5 秒重试；重试仍失败才标失败。
+        final ConnectionMode startMode = mode;
+        final String startMac = mac;
         try {
             goForeground();
-        } catch (RuntimeException e) {
-            // 个别定制系统即便权限齐全也可能拒绝前台服务启动，降级为提示而不是闪退
-            LogBus.get().log(LogBus.Level.ERROR, "前台服务启动被拒绝：" + e.getMessage());
-            state.setPhase(ReceiverState.Phase.FAILED);
-            state.setStatusText("无法启动后台接收：" + e.getMessage());
-            notifyStateChanged();
-            stopSelf();
+        } catch (RuntimeException first) {
+            LogBus.get().log(LogBus.Level.WARN,
+                    "前台服务启动被拒绝，1.5 秒后重试：" + first.getMessage());
+            main.postDelayed(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        goForeground();
+                    } catch (RuntimeException retry) {
+                        LogBus.get().log(LogBus.Level.ERROR,
+                                "前台服务启动重试仍失败：" + retry.getMessage());
+                        state.setPhase(ReceiverState.Phase.FAILED);
+                        state.setStatusText("无法启动后台接收：" + retry.getMessage());
+                        notifyStateChanged();
+                        stopSelf();
+                        return;
+                    }
+                    startAfterForeground(startMode, startMac);
+                }
+            }, 1500L);
             return START_NOT_STICKY;
         }
+        return startAfterForeground(startMode, startMac);
+    }
+
+    /** 跑实际流水线：先调用此方法启动前台服务；被 FGS 启动被拒重试时也走这里。 */
+    private int startAfterForeground(ConnectionMode mode, String mac) {
         running = true;
         startPipeline(mode, mac);
         // 进程被系统杀掉后带着原参数重启，接收自动恢复（正常 stopSelf 不会触发重启）
