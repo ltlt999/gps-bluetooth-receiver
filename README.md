@@ -18,8 +18,8 @@
 
 ## 📦 安装
 
-- 直接安装根目录下的 `gps-receiver-v1.3.3.apk`（release 签名版）
-- 或用 Android Studio 打开本工程自行构建
+- 到 [Releases](https://github.com/ltlt999/gps-bluetooth-receiver/releases) 下载最新 APK（release 签名版）安装
+- 或用 Android Studio 打开本工程自行构建（release 构建需自备 `release.keystore` 与 `keystore.properties`，二者不入库）
 
 系统要求：Android 7.0（API 24）及以上；需与发送端先在系统蓝牙设置中完成配对。
 
