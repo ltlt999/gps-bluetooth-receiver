@@ -65,6 +65,12 @@ public class ReceiverService extends Service {
     private volatile String pendingMac;
     private ScheduledExecutorService retryExecutor;
     private volatile int retryAttempts;
+    private ScheduledExecutorService watchdogExecutor;
+    private volatile long watchdogBytes = -1;
+    private volatile long watchdogDataAt;
+
+    /** 已连接状态下超过该时长没有任何数据到达，视为链路假死，强制重连。 */
+    private static final long DATA_TIMEOUT_MS = 45000L;
 
     /** 重连间隔：2、4、6…秒，封顶 30 秒。 */
     static long retryDelaySeconds(int attempts) {
@@ -178,6 +184,7 @@ public class ReceiverService extends Service {
     private void startPipeline(ConnectionMode mode, String mac) {
         // 可能是运行中重新选择设备后的重启：先清掉旧链路与重连任务
         stopRetry();
+        stopWatchdog();
         if (link != null) {
             link.stop();
             link = null;
@@ -194,6 +201,7 @@ public class ReceiverService extends Service {
         state.setStartedAt(System.currentTimeMillis());
         pendingMode = mode;
         pendingMac = mac;
+        startWatchdog();
 
         if (!adapter.isEnabled()) {
             if (!fromBoot) {
@@ -309,6 +317,8 @@ public class ReceiverService extends Service {
                 @Override
                 public void onConnected(String remoteName, String remoteMac) {
                     retryAttempts = 0;
+                    watchdogBytes = -1;
+                    watchdogDataAt = System.currentTimeMillis();
                     state.setConnectedDevice(new ReceiverState.Device(remoteName, remoteMac));
                     state.setPhase(ReceiverState.Phase.CONNECTED);
                     LogBus.get().log(LogBus.Level.INFO,
@@ -415,6 +425,44 @@ public class ReceiverService extends Service {
         if (retryExecutor != null) {
             retryExecutor.shutdownNow();
             retryExecutor = null;
+        }
+    }
+
+    /** 链路假死看门狗：已连接但持续无数据到达（蓝牙假死常见现象）时强制重连。 */
+    private void startWatchdog() {
+        stopWatchdog();
+        watchdogBytes = -1;
+        watchdogDataAt = System.currentTimeMillis();
+        watchdogExecutor = Executors.newSingleThreadScheduledExecutor();
+        watchdogExecutor.scheduleWithFixedDelay(new Runnable() {
+            @Override
+            public void run() {
+                if (!running) {
+                    return;
+                }
+                long now = System.currentTimeMillis();
+                if (state.phase() != ReceiverState.Phase.CONNECTED) {
+                    watchdogDataAt = now;
+                    return;
+                }
+                long bytes = state.bytes();
+                if (bytes != watchdogBytes) {
+                    watchdogBytes = bytes;
+                    watchdogDataAt = now;
+                    return;
+                }
+                if (now - watchdogDataAt > DATA_TIMEOUT_MS) {
+                    LogBus.get().log(LogBus.Level.WARN, "已连接但超过 45 秒无数据，判定链路假死，强制重连");
+                    scheduleReconnect("连接无数据超时");
+                }
+            }
+        }, 5, 5, TimeUnit.SECONDS);
+    }
+
+    private void stopWatchdog() {
+        if (watchdogExecutor != null) {
+            watchdogExecutor.shutdownNow();
+            watchdogExecutor = null;
         }
     }
 
@@ -536,6 +584,7 @@ public class ReceiverService extends Service {
     private synchronized void stopSelfSafely() {
         running = false;
         stopRetry();
+        stopWatchdog();
         if (link != null) {
             link.stop();
             link = null;
