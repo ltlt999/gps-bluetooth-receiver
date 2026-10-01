@@ -42,8 +42,6 @@ public final class BluetoothLinkManager {
 
     /** 标准 SPP UUID，与发送端一致。 */
     public static final UUID SPP_UUID = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB");
-    /** 与发送端约定同一 RFCOMM 通道（1-3 是蓝牙规范保留通道，4+ 通常空闲）。 */
-    private static final int RFCOMM_CHANNEL = 4;
 
     private static final int BUFFER_SIZE = 4096;
 
@@ -288,20 +286,11 @@ public final class BluetoothLinkManager {
 
         @Override
         public void run() {
-            BluetoothSocket socket;
+            // 标准 SPP 连接：SDP 用 UUID 过滤，确保连到的是发送端注册的服务。
+            // 发送端 v1.3.0 起 server socket 常驻（accept 循环），SDP 记录永不失效。
             try {
-                socket = createSocket(device);
-            } catch (IOException e) {
-                postState(BtState.FAILED, "创建套接字失败：" + e.getMessage());
-                return;
-            }
-            target = socket;
-            // createSocket 返回时：反射路径成功则 socket 已连接（跳过 connect），
-            // SDP 路径则未连接（需要 connect 走 SDP 查询）。
-            try {
-                if (!socket.isConnected()) {
-                    socket.connect();
-                }
+                target = device.createInsecureRfcommSocketToServiceRecord(uuid);
+                target.connect();
             } catch (SecurityException e) {
                 postState(BtState.FAILED, "缺少蓝牙连接权限");
                 return;
@@ -315,32 +304,6 @@ public final class BluetoothLinkManager {
                 return;
             }
             attach(target);
-        }
-
-        /**
-         * 创建 SPP 套接字：直接反射 createInsecureRfcommSocket(RFCOMM_CHANNEL) 直连发送端约定的
-         * 固定通道，完全绕过 SDP 缓存和 Android 通道重新分配问题。
-         * 反射失败时回退到 SDP 查询作为最后保险。
-         */
-        private BluetoothSocket createSocket(BluetoothDevice device) throws IOException {
-            try {
-                java.lang.reflect.Method m = device.getClass()
-                        .getMethod("createInsecureRfcommSocket", int.class);
-                BluetoothSocket socket = (BluetoothSocket) m.invoke(device, RFCOMM_CHANNEL);
-                socket.connect();
-                return socket;
-            } catch (Throwable ignored) {
-            }
-            // 反射失败/被屏蔽时回退到 SDP 查询
-            BluetoothSocket sdpSocket = null;
-            try {
-                sdpSocket = device.createInsecureRfcommSocketToServiceRecord(uuid);
-                sdpSocket.connect();
-                return sdpSocket;
-            } catch (Throwable ignored) {
-                if (sdpSocket != null) try { sdpSocket.close(); } catch (Throwable x) {}
-            }
-            throw new IOException("反射直连通道 " + RFCOMM_CHANNEL + " 失败，SDP 查询也失败");
         }
 
         void cancel() {
