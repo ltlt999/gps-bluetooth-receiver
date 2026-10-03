@@ -280,6 +280,45 @@ public class MainActivity extends AppCompatActivity
     }
 
     /** 弹窗选择发送端设备：选择后立即保存；正在接收时切换到新设备重连。 */
+    /**
+     * 检查是否已被设置为模拟位置应用（AppOps 系统开关，与开发者选项列表一致）。
+     * 返回 null 表示当前系统无法检测。AppOps 的 mock op 为隐藏 API，统一走反射。
+     */
+    private Boolean mockLocationAllowed() {
+        try {
+            Object appOps = getSystemService("appops");
+            int op = (Integer) android.app.AppOpsManager.class
+                    .getField("OP_MOCK_LOCATION").get(null);
+            java.lang.reflect.Method check = appOps.getClass().getMethod(
+                    "checkOpNoThrow", int.class, int.class, String.class);
+            int mode = (Integer) check.invoke(appOps,
+                    op, android.os.Process.myUid(), getPackageName());
+            return mode == android.app.AppOpsManager.MODE_ALLOWED;
+        } catch (Throwable e) {
+            return null;
+        }
+    }
+
+    /** 设置弹窗里展示模拟位置授权状态与下一步指引。 */
+    private void refreshMockStatus(TextView tvMockStatus) {
+        Boolean allowed = mockLocationAllowed();
+        tvMockStatus.setVisibility(View.VISIBLE);
+        if (allowed != null && allowed) {
+            tvMockStatus.setText("√ 已授权为模拟位置应用，可以注入");
+            tvMockStatus.setTextColor(0xFF00E5C7);
+            return;
+        }
+        if (allowed != null) {
+            tvMockStatus.setText("× 尚未授权。步骤：开发者选项 → 选择模拟位置信息应用 → 本应用；"
+                    + "若列表中找不到本应用，可在电脑 adb 执行：\n"
+                    + "adb shell appops set com.gpsbt.receiver MOCK_LOCATION allow");
+            tvMockStatus.setTextColor(0xFFFF8A3D);
+            return;
+        }
+        tvMockStatus.setText("当前系统无法检测授权状态，请直接在开发者选项中设置");
+        tvMockStatus.setTextColor(0xFFFF8A3D);
+    }
+
     /** 设置弹窗：开机自动接收 + 向系统注入定位。 */
     private void showSettingsDialog() {
         View content = getLayoutInflater().inflate(R.layout.dialog_settings, null);
@@ -294,6 +333,8 @@ public class MainActivity extends AppCompatActivity
 
         final SwitchMaterial switchMock = content.findViewById(R.id.switchMock);
         switchMock.setChecked(prefs.isMockInjectionEnabled());
+        final TextView tvMockStatus = content.findViewById(R.id.tvMockStatus);
+        refreshMockStatus(tvMockStatus);
         switchMock.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
@@ -305,6 +346,7 @@ public class MainActivity extends AppCompatActivity
                 }
                 if (isChecked) {
                     Toast.makeText(MainActivity.this, R.string.mock_summary, Toast.LENGTH_LONG).show();
+                    refreshMockStatus(tvMockStatus);
                 }
                 // 正在接收时切换注入：重新启动服务流水线，立即生效
                 if (ReceiverService.isRunning()) {

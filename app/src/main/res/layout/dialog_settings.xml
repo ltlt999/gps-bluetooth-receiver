@@ -48,4 +48,15 @@
         android:text="@string/mock_summary"
         android:textAppearance="@style/TextAppearance.GpsReceiver.Body"
         android:textSize="12sp" />
+
+    <TextView
+        android:id="@+id/tvMockStatus"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="8dp"
+        android:paddingStart="4dp"
+        android:fontFamily="monospace"
+        android:textIsSelectable="true"
+        android:textSize="11sp"
+        android:visibility="gone" />
 </LinearLayout>
