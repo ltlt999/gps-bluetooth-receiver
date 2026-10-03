@@ -71,6 +71,8 @@ public class ReceiverService extends Service {
     private ScheduledExecutorService watchdogExecutor;
     private volatile long watchdogBytes = -1;
     private volatile long watchdogDataAt;
+    private volatile long connectedAtMs;
+    private volatile boolean noDataHintShown;
 
     /** 已连接状态下超过该时长没有任何数据到达，视为链路假死，强制重连。 */
     private static final long DATA_TIMEOUT_MS = 45000L;
@@ -344,6 +346,8 @@ public class ReceiverService extends Service {
                     retryAttempts = 0;
                     watchdogBytes = -1;
                     watchdogDataAt = System.currentTimeMillis();
+                    connectedAtMs = System.currentTimeMillis();
+                    noDataHintShown = false;
                     state.setConnectedDevice(new ReceiverState.Device(remoteName, remoteMac));
                     state.setPhase(ReceiverState.Phase.CONNECTED);
                     LogBus.get().log(LogBus.Level.INFO,
@@ -373,6 +377,10 @@ public class ReceiverService extends Service {
     private final NmeaParser.Listener nmeaListener = new NmeaParser.Listener() {
         @Override
         public void onFix(NmeaParser.Fix fix) {
+            if (noDataHintShown) {
+                noDataHintShown = false;
+                state.setStatusText("已连接，正在接收数据");
+            }
             state.setFix(fix);
             state.notifyChanged();
         }
@@ -469,6 +477,17 @@ public class ReceiverService extends Service {
                 if (state.phase() != ReceiverState.Phase.CONNECTED) {
                     watchdogDataAt = now;
                     return;
+                }
+                // 已连接但一直没有定位数据：大概率是发送端 GPS 尚未定位，
+                // 链路靠 ZDA 保活帧维持。给出明确提示，避免看起来像坏了
+                if (state.fix() == null && !noDataHintShown
+                        && now - connectedAtMs > 10000L) {
+                    noDataHintShown = true;
+                    state.setStatusText("已连接，但发送端暂无定位数据（等待 GPS，"
+                            + "或让发送端开启「允许网络定位」）");
+                    LogBus.get().log(LogBus.Level.INFO,
+                            "发送端已连接但未发送定位数据（可能 GPS 尚未定位，仅有保活帧）");
+                    notifyStateChanged();
                 }
                 long bytes = state.bytes();
                 if (bytes != watchdogBytes) {
