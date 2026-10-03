@@ -1,6 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
+    <!-- 定位：仅用于「向系统注入定位（模拟位置）」——把发送端的位置提供给平板上的其它 App -->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+
     <!-- 蓝牙：旧版 -->
     <uses-permission
         android:name="android.permission.BLUETOOTH"

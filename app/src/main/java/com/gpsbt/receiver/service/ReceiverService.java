@@ -61,6 +61,7 @@ public class ReceiverService extends Service {
     private ReceiverState state;
     private BluetoothLinkManager link;
     private NmeaParser parser;
+    private MockLocationInjector injector;
     private long lastNotificationAt;
     private final Handler main = new Handler(Looper.getMainLooper());
     private volatile boolean fromBoot;
@@ -143,6 +144,14 @@ public class ReceiverService extends Service {
     public void onCreate() {
         super.onCreate();
         state = ReceiverState.get();
+        injector = new MockLocationInjector(this, new MockLocationInjector.ErrorListener() {
+            @Override
+            public void onInjectionError(String message) {
+                LogBus.get().log(LogBus.Level.ERROR, "位置注入：" + message);
+                state.setStatusText("位置注入失败：" + message);
+                notifyStateChanged();
+            }
+        });
         createChannel();
     }
 
@@ -229,6 +238,12 @@ public class ReceiverService extends Service {
         pendingMode = mode;
         pendingMac = mac;
         startWatchdog();
+        // 位置注入：用户开启且已授权（模拟位置应用）时，把收到的定位提供给其它 App
+        if (Prefs.get(this).isMockInjectionEnabled()) {
+            injector.start();
+        } else {
+            injector.stop();
+        }
 
         if (!adapter.isEnabled()) {
             if (!fromBoot) {
@@ -382,6 +397,9 @@ public class ReceiverService extends Service {
                 state.setStatusText("已连接，正在接收数据");
             }
             state.setFix(fix);
+            if (Prefs.get(ReceiverService.this).isMockInjectionEnabled()) {
+                injector.inject(fix);
+            }
             state.notifyChanged();
         }
 
@@ -629,6 +647,9 @@ public class ReceiverService extends Service {
         running = false;
         stopRetry();
         stopWatchdog();
+        if (injector != null) {
+            injector.stop();
+        }
         if (link != null) {
             link.stop();
             link = null;

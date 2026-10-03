@@ -204,6 +204,13 @@ public class MainActivity extends AppCompatActivity
                 == PackageManager.PERMISSION_GRANTED;
     }
 
+    private boolean hasLocationPermission() {
+        return ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
+                == PackageManager.PERMISSION_GRANTED
+                || ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION)
+                == PackageManager.PERMISSION_GRANTED;
+    }
+
     private void ensurePermissions() {
         if (hasBluetoothPermission()) {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
@@ -212,14 +219,18 @@ public class MainActivity extends AppCompatActivity
                 ActivityCompat.requestPermissions(this, new String[]{
                         Manifest.permission.POST_NOTIFICATIONS}, REQUEST_PERMISSIONS);
             }
-            return;
-        }
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             ActivityCompat.requestPermissions(this,
                     new String[]{Manifest.permission.BLUETOOTH_CONNECT}, REQUEST_PERMISSIONS);
         } else {
             ActivityCompat.requestPermissions(this,
                     new String[]{Manifest.permission.BLUETOOTH}, REQUEST_PERMISSIONS);
+        }
+        // 位置注入需要定位权限：仅在用户开启注入功能时才请求，避免打扰普通使用者
+        if (prefs.isMockInjectionEnabled() && !hasLocationPermission()) {
+            ActivityCompat.requestPermissions(this, new String[]{
+                    Manifest.permission.ACCESS_FINE_LOCATION,
+                    Manifest.permission.ACCESS_COARSE_LOCATION}, REQUEST_PERMISSIONS);
         }
     }
 
@@ -269,7 +280,7 @@ public class MainActivity extends AppCompatActivity
     }
 
     /** 弹窗选择发送端设备：选择后立即保存；正在接收时切换到新设备重连。 */
-    /** 设置弹窗：开机自动开始接收开关。 */
+    /** 设置弹窗：开机自动接收 + 向系统注入定位。 */
     private void showSettingsDialog() {
         View content = getLayoutInflater().inflate(R.layout.dialog_settings, null);
         final SwitchMaterial switchAutoStart = content.findViewById(R.id.switchAutoStart);
@@ -280,6 +291,29 @@ public class MainActivity extends AppCompatActivity
                 prefs.setAutoStartOnBoot(isChecked);
             }
         });
+
+        final SwitchMaterial switchMock = content.findViewById(R.id.switchMock);
+        switchMock.setChecked(prefs.isMockInjectionEnabled());
+        switchMock.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                prefs.setMockInjectionEnabled(isChecked);
+                if (isChecked && !hasLocationPermission()) {
+                    ActivityCompat.requestPermissions(MainActivity.this, new String[]{
+                            Manifest.permission.ACCESS_FINE_LOCATION,
+                            Manifest.permission.ACCESS_COARSE_LOCATION}, REQUEST_PERMISSIONS);
+                }
+                if (isChecked) {
+                    Toast.makeText(MainActivity.this, R.string.mock_summary, Toast.LENGTH_LONG).show();
+                }
+                // 正在接收时切换注入：重新启动服务流水线，立即生效
+                if (ReceiverService.isRunning()) {
+                    ReceiverService.start(MainActivity.this,
+                            prefs.getMode(), prefs.getLastDeviceMac());
+                }
+            }
+        });
+
         new AlertDialog.Builder(this)
                 .setTitle(R.string.settings_title)
                 .setView(content)

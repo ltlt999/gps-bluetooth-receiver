@@ -15,6 +15,7 @@ public final class Prefs {
     private static final String KEY_MODE = "mode";
     private static final String KEY_LAST_MAC = "last_device_mac";
     private static final String KEY_AUTO_START = "auto_start_boot";
+    private static final String KEY_MOCK_INJECTION = "mock_injection";
 
     /** 开机自启默认关闭：用户不开启就不自动运行。 */
     public static final boolean DEFAULT_AUTO_START = false;
@@ -69,5 +70,14 @@ public final class Prefs {
 
     public void setAutoStartOnBoot(boolean value) {
         prefs.edit().putBoolean(KEY_AUTO_START, value).apply();
+    }
+
+    /** 是否把收到的定位注入系统（模拟位置），供平板上其它 App 使用。默认关闭。 */
+    public boolean isMockInjectionEnabled() {
+        return prefs.getBoolean(KEY_MOCK_INJECTION, false);
+    }
+
+    public void setMockInjectionEnabled(boolean value) {
+        prefs.edit().putBoolean(KEY_MOCK_INJECTION, value).apply();
     }
 }

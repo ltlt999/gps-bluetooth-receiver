@@ -19,9 +19,33 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="4dp"
-        android:layout_marginBottom="8dp"
         android:paddingStart="4dp"
         android:text="@string/auto_start_summary"
+        android:textAppearance="@style/TextAppearance.GpsReceiver.Body"
+        android:textSize="12sp" />
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:layout_marginTop="12dp"
+        android:layout_marginBottom="12dp"
+        android:background="#223050" />
+
+    <com.google.android.material.switchmaterial.SwitchMaterial
+        android:id="@+id/switchMock"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/mock_title"
+        android:textColor="@color/color_text_primary"
+        android:textSize="15sp" />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:layout_marginBottom="8dp"
+        android:paddingStart="4dp"
+        android:text="@string/mock_summary"
         android:textAppearance="@style/TextAppearance.GpsReceiver.Body"
         android:textSize="12sp" />
 </LinearLayout>

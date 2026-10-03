@@ -78,6 +78,8 @@
     <string name="settings_title">设置</string>
     <string name="auto_start_title">开机自动开始接收</string>
     <string name="auto_start_summary">开机后按上次的模式和设备自动开始接收</string>
+    <string name="mock_title">向系统注入定位</string>
+    <string name="mock_summary">把发送端的位置提供给平板上的其它 App（如地图）。需要定位权限，并在开发者选项「选择模拟位置信息应用」中选择本应用；停止接收后自动恢复本机 GPS</string>
     <string name="wait_bluetooth">等待蓝牙开启…</string>
 
     <!-- 开机自启 -->
