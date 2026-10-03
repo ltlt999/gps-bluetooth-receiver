@@ -1,9 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
 
     <!-- 定位：仅用于「向系统注入定位（模拟位置）」——把发送端的位置提供给平板上的其它 App -->
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+
+    <!-- 关键：Android 6+ 的开发者选项「选择模拟位置信息应用」列表只显示声明了
+         ACCESS_MOCK_LOCATION 的应用。该权限本身已废弃（不会授予任何运行时能力，
+         实际授权走 AppOps），声明它仅用于通过该列表的过滤。 -->
+    <uses-permission
+        android:name="android.permission.ACCESS_MOCK_LOCATION"
+        tools:ignore="MockLocation,ProtectedPermissions" />
 
     <!-- 蓝牙：旧版 -->
     <uses-permission
