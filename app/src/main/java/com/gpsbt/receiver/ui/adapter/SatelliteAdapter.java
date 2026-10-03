@@ -33,6 +33,10 @@ public final class SatelliteAdapter extends RecyclerView.Adapter<SatelliteAdapte
         Collections.sort(items, new Comparator<NmeaParser.Sat>() {
             @Override
             public int compare(NmeaParser.Sat left, NmeaParser.Sat right) {
+                // 参与定位的卫星排在最前
+                if (left.used != right.used) {
+                    return left.used ? -1 : 1;
+                }
                 int leftOrder = orderOf(left.constellation);
                 int rightOrder = orderOf(right.constellation);
                 if (leftOrder != rightOrder) {
