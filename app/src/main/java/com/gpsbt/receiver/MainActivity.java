@@ -384,15 +384,26 @@ public class MainActivity extends AppCompatActivity
         });
 
         // 开机自启记录（进程被杀后内存日志会丢，这里读持久化记录）
-        TextView tvBootLog = content.findViewById(R.id.tvBootLog);
-        String bootLog = BootLog.read(this);
-        tvBootLog.setText(bootLog.isEmpty() ? getString(R.string.boot_log_empty) : bootLog);
+        final TextView tvBootLog = content.findViewById(R.id.tvBootLog);
+        refreshBootLog(tvBootLog);
+        content.findViewById(R.id.btnClearBootLog).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                BootLog.clear(MainActivity.this);
+                refreshBootLog(tvBootLog);
+            }
+        });
 
         new AlertDialog.Builder(this)
                 .setTitle(R.string.settings_title)
                 .setView(content)
                 .setPositiveButton(android.R.string.ok, null)
                 .show();
+    }
+
+    private void refreshBootLog(TextView tvBootLog) {
+        String bootLog = BootLog.read(this);
+        tvBootLog.setText(bootLog.isEmpty() ? getString(R.string.boot_log_empty) : bootLog);
     }
 
     private boolean ignoringBatteryOptimizations() {
