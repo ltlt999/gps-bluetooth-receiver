@@ -36,6 +36,8 @@
 
     <!-- 开机自启：开关默认关闭，用户开启后开机才会自动开始接收 -->
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <!-- 申请忽略电池优化：避免国产 ROM 为省电杀掉后台接收 -->
+    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
 
     <uses-feature android:name="android.hardware.bluetooth" android:required="false" />
 

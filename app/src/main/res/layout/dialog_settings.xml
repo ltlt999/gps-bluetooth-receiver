@@ -77,4 +77,53 @@
         android:text="@string/mock_hold_summary"
         android:textAppearance="@style/TextAppearance.GpsReceiver.Body"
         android:textSize="12sp" />
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:layout_marginTop="12dp"
+        android:layout_marginBottom="12dp"
+        android:background="#223050" />
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btnBattery"
+        style="@style/Widget.Material3.Button.TextButton"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="start|center_vertical"
+        android:text="@string/battery_request"
+        android:textSize="13sp" />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="2dp"
+        android:paddingStart="4dp"
+        android:text="@string/battery_summary"
+        android:textAppearance="@style/TextAppearance.GpsReceiver.Body"
+        android:textSize="11sp" />
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:layout_marginTop="12dp"
+        android:layout_marginBottom="12dp"
+        android:background="#223050" />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/boot_log_title"
+        android:textColor="@color/color_text_primary"
+        android:textSize="14sp" />
+
+    <TextView
+        android:id="@+id/tvBootLog"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="6dp"
+        android:layout_marginBottom="8dp"
+        android:fontFamily="monospace"
+        android:textIsSelectable="true"
+        android:textSize="11sp" />
 </LinearLayout>

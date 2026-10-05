@@ -14,6 +14,7 @@ import com.gpsbt.receiver.MainActivity;
 import com.gpsbt.receiver.R;
 import com.gpsbt.receiver.state.LogBus;
 import com.gpsbt.receiver.state.ReceiverState;
+import com.gpsbt.receiver.util.BootLog;
 
 /** 开机自动接收未能启动时的提示。 */
 public final class BootNotifier {
@@ -29,6 +30,7 @@ public final class BootNotifier {
      * 三处都写是因为通知在 Android 13+ 可能被用户关掉，界面状态永远是可见的。
      */
     public static void reportBlocked(Context context, String reason) {
+        BootLog.record(context, "自动接收未启动：" + reason);
         LogBus.get().log(LogBus.Level.ERROR, "自动接收未启动：" + reason);
         ReceiverState.get().setPhase(ReceiverState.Phase.IDLE);
         ReceiverState.get().setStatusText(reason);

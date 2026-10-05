@@ -12,6 +12,7 @@ import com.gpsbt.receiver.R;
 import com.gpsbt.receiver.bt.ConnectionMode;
 import com.gpsbt.receiver.service.ReceiverService;
 import com.gpsbt.receiver.state.LogBus;
+import com.gpsbt.receiver.util.BootLog;
 import com.gpsbt.receiver.util.Prefs;
 
 /**
@@ -80,6 +81,7 @@ public final class BootAutoStart {
         attempted = true;
 
         LogBus.get().log(LogBus.Level.INFO, "界面冷启动，自动开始接收");
+        BootLog.record(context, "界面冷启动兜底：启动接收");
         ReceiverService.startFromUi(context, prefs.getMode(), prefs.getLastDeviceMac());
         return true;
     }

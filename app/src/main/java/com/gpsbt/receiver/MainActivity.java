@@ -3,6 +3,7 @@ package com.gpsbt.receiver;
 import android.Manifest;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
+import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
@@ -33,6 +34,7 @@ import com.gpsbt.receiver.state.LogBus;
 import com.gpsbt.receiver.state.ReceiverState;
 import com.gpsbt.receiver.ui.adapter.LogAdapter;
 import com.gpsbt.receiver.ui.adapter.SatelliteAdapter;
+import com.gpsbt.receiver.util.BootLog;
 import com.gpsbt.receiver.util.Formatters;
 import com.gpsbt.receiver.util.Prefs;
 
@@ -370,11 +372,51 @@ public class MainActivity extends AppCompatActivity
             }
         });
 
+        // 电池优化状态与一键设置
+        final MaterialButton btnBattery = content.findViewById(R.id.btnBattery);
+        btnBattery.setText(ignoringBatteryOptimizations()
+                ? R.string.battery_ok : R.string.battery_request);
+        btnBattery.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                requestIgnoreBatteryOptimizations();
+            }
+        });
+
+        // 开机自启记录（进程被杀后内存日志会丢，这里读持久化记录）
+        TextView tvBootLog = content.findViewById(R.id.tvBootLog);
+        String bootLog = BootLog.read(this);
+        tvBootLog.setText(bootLog.isEmpty() ? getString(R.string.boot_log_empty) : bootLog);
+
         new AlertDialog.Builder(this)
                 .setTitle(R.string.settings_title)
                 .setView(content)
                 .setPositiveButton(android.R.string.ok, null)
                 .show();
+    }
+
+    private boolean ignoringBatteryOptimizations() {
+        android.os.PowerManager powerManager =
+                (android.os.PowerManager) getSystemService(POWER_SERVICE);
+        return powerManager != null
+                && powerManager.isIgnoringBatteryOptimizations(getPackageName());
+    }
+
+    private void requestIgnoreBatteryOptimizations() {
+        try {
+            Intent intent = new Intent(
+                    android.provider.Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS);
+            intent.setData(android.net.Uri.parse("package:" + getPackageName()));
+            startActivity(intent);
+        } catch (RuntimeException e) {
+            // 个别 ROM 不支持直接申请，退回到电池优化列表页
+            try {
+                startActivity(new Intent(
+                        android.provider.Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS));
+            } catch (RuntimeException ignored) {
+                Toast.makeText(this, R.string.battery_summary, Toast.LENGTH_LONG).show();
+            }
+        }
     }
 
     private void showDeviceDialog() {

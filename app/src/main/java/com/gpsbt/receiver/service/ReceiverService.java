@@ -28,6 +28,7 @@ import com.gpsbt.receiver.nmea.NmeaChecksum;
 import com.gpsbt.receiver.nmea.NmeaParser;
 import com.gpsbt.receiver.state.LogBus;
 import com.gpsbt.receiver.state.ReceiverState;
+import com.gpsbt.receiver.util.BootLog;
 import com.gpsbt.receiver.util.Formatters;
 import com.gpsbt.receiver.util.Prefs;
 
@@ -99,6 +100,7 @@ public class ReceiverService extends Service {
     /** 开机自启入口：按上次的模式与设备自动开始接收，蓝牙未就绪时由服务内部等待。 */
     public static void startFromBoot(Context context) {
         Prefs prefs = Prefs.get(context);
+        BootLog.record(context, "启动服务（模式：" + prefs.getMode() + "）");
         Intent intent = new Intent(context, ReceiverService.class);
         intent.setAction(ACTION_START);
         intent.putExtra(EXTRA_FROM_BOOT, true);
@@ -375,6 +377,7 @@ public class ReceiverService extends Service {
                     noDataHintShown = false;
                     state.setConnectedDevice(new ReceiverState.Device(remoteName, remoteMac));
                     state.setPhase(ReceiverState.Phase.CONNECTED);
+                    BootLog.record(ReceiverService.this, "已连接 " + remoteName);
                     LogBus.get().log(LogBus.Level.INFO,
                             "已连接 " + remoteName + "（" + remoteMac + "）");
                     notifyStateChanged();

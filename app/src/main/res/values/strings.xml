@@ -92,4 +92,10 @@
     <string name="boot_reason_no_bluetooth">设备不支持蓝牙，无法自动接收</string>
     <string name="boot_reason_no_device">未选择发送端设备，无法自动接收</string>
     <string name="boot_reason_bluetooth_off">蓝牙未开启，自动接收未启动</string>
+    <!-- 电池优化与开机记录 -->
+    <string name="battery_request">电池优化：点击允许后台常驻</string>
+    <string name="battery_ok">电池优化：已忽略（后台更稳定）</string>
+    <string name="battery_summary">开启后系统不会为省电杀掉后台接收；部分国产 ROM 还需在「自启动管理」中允许本应用自启</string>
+    <string name="boot_log_title">开机自启记录</string>
+    <string name="boot_log_empty">（暂无开机记录，重启设备后这里会显示自启过程）</string>
 </resources>
