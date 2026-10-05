@@ -32,6 +32,10 @@ public final class MockLocationInjector {
     private static final long HOLD_REFRESH_MS = 1000L;
     /** 距上次注入超过该时长才判定为断流。 */
     private static final long HOLD_AFTER_MS = 2500L;
+    /** 低于该速度视为静止，断流期间冻结位置而不是外推。 */
+    static final double MIN_EXTRAPOLATE_SPEED_MPS = 0.6;
+    /** 外推时长上限：超过后冻结在最后推测点，避免误差无限累积。 */
+    static final long MAX_EXTRAPOLATE_MS = 90_000L;
 
     private final LocationManager locationManager;
     private final Listener listener;
@@ -42,6 +46,7 @@ public final class MockLocationInjector {
     private boolean holdLast;
     private boolean holding;
     private NmeaParser.Fix lastFix;
+    private long lastFixAt;
     private long lastInjectAt;
 
     private final Runnable holdLoop = new Runnable() {
@@ -56,7 +61,13 @@ public final class MockLocationInjector {
                     holding = true;
                     notifyHold(true);
                 }
-                injectLocation(lastFix);
+                long elapsed = now - lastFixAt;
+                NmeaParser.Fix projected = new NmeaParser.Fix();
+                extrapolate(lastFix, elapsed, projected);
+                // 推测时间越长精度越差（每秒 +1 米，封顶 80 米）
+                float accuracy = Math.min(80f,
+                        estimateAccuracyM(lastFix.hdop) + elapsed / 1000f);
+                injectLocation(projected, accuracy);
             }
             main.postDelayed(this, HOLD_REFRESH_MS);
         }
@@ -141,11 +152,12 @@ public final class MockLocationInjector {
             notifyHold(false);
         }
         lastFix = copy(fix);
-        injectLocation(lastFix);
+        lastFixAt = System.currentTimeMillis();
+        injectLocation(lastFix, estimateAccuracyM(fix.hdop));
     }
 
     /** 按给定定位写一次测试提供者位置（时间戳刷新为当前时刻）。 */
-    private synchronized void injectLocation(NmeaParser.Fix fix) {
+    private synchronized void injectLocation(NmeaParser.Fix fix, float accuracyM) {
         if (!providerAdded || failed || locationManager == null) {
             return;
         }
@@ -162,7 +174,7 @@ public final class MockLocationInjector {
             if (!Double.isNaN(fix.courseDeg)) {
                 location.setBearing((float) fix.courseDeg);
             }
-            location.setAccuracy(estimateAccuracyM(fix.hdop));
+            location.setAccuracy(accuracyM);
             location.setTime(System.currentTimeMillis());
             location.setElapsedRealtimeNanos(SystemClock.elapsedRealtimeNanos());
             locationManager.setTestProviderLocation(LocationManager.GPS_PROVIDER, location);
@@ -171,6 +183,39 @@ public final class MockLocationInjector {
             failed = true;
             reportError("注入被系统拒绝，已停止：" + e.getMessage());
         }
+    }
+
+    /**
+     * 断流位置推测：按最后速度与航向直线外推。
+     * 静止（速度低于阈值）或缺少速度/航向时保持原坐标；
+     * 外推时长封顶 {@link #MAX_EXTRAPOLATE_MS}，避免误差无限累积。
+     */
+    static void extrapolate(NmeaParser.Fix base, long elapsedMs, NmeaParser.Fix out) {
+        out.valid = base.valid;
+        out.latitude = base.latitude;
+        out.longitude = base.longitude;
+        out.altitudeM = base.altitudeM;
+        out.speedMps = base.speedMps;
+        out.courseDeg = base.courseDeg;
+        out.hdop = base.hdop;
+        out.satellitesUsed = base.satellitesUsed;
+        out.satellitesInView = base.satellitesInView;
+        out.utcMillis = base.utcMillis;
+
+        if (Double.isNaN(base.speedMps) || Double.isNaN(base.courseDeg)) {
+            return;
+        }
+        if (base.speedMps < MIN_EXTRAPOLATE_SPEED_MPS) {
+            return; // 静止：冻结位置
+        }
+        long capped = Math.min(Math.max(0L, elapsedMs), MAX_EXTRAPOLATE_MS);
+        double distance = base.speedMps * capped / 1000.0;
+        double bearing = Math.toRadians(base.courseDeg);
+        double dLat = distance * Math.cos(bearing) / 111320.0;
+        double dLon = distance * Math.sin(bearing)
+                / (111320.0 * Math.max(0.1, Math.cos(Math.toRadians(base.latitude))));
+        out.latitude = base.latitude + dLat;
+        out.longitude = base.longitude + dLon;
     }
 
     /** 定位快照副本（Fix 为可变对象，必须拷贝保存）。 */
