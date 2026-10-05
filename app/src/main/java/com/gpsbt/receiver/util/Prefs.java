@@ -16,6 +16,7 @@ public final class Prefs {
     private static final String KEY_LAST_MAC = "last_device_mac";
     private static final String KEY_AUTO_START = "auto_start_boot";
     private static final String KEY_MOCK_INJECTION = "mock_injection";
+    private static final String KEY_MOCK_HOLD = "mock_hold_last";
 
     /** 开机自启默认关闭：用户不开启就不自动运行。 */
     public static final boolean DEFAULT_AUTO_START = false;
@@ -79,5 +80,14 @@ public final class Prefs {
 
     public void setMockInjectionEnabled(boolean value) {
         prefs.edit().putBoolean(KEY_MOCK_INJECTION, value).apply();
+    }
+
+    /** 注入断流时是否保持最后位置。默认关闭。 */
+    public boolean isMockHoldLastEnabled() {
+        return prefs.getBoolean(KEY_MOCK_HOLD, false);
+    }
+
+    public void setMockHoldLastEnabled(boolean value) {
+        prefs.edit().putBoolean(KEY_MOCK_HOLD, value).apply();
     }
 }

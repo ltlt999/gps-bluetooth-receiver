@@ -59,4 +59,22 @@
         android:textIsSelectable="true"
         android:textSize="11sp"
         android:visibility="gone" />
+
+    <com.google.android.material.switchmaterial.SwitchMaterial
+        android:id="@+id/switchMockHold"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/mock_hold_title"
+        android:textColor="@color/color_text_primary"
+        android:textSize="15sp" />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:layout_marginBottom="8dp"
+        android:paddingStart="4dp"
+        android:text="@string/mock_hold_summary"
+        android:textAppearance="@style/TextAppearance.GpsReceiver.Body"
+        android:textSize="12sp" />
 </LinearLayout>

@@ -356,6 +356,20 @@ public class MainActivity extends AppCompatActivity
             }
         });
 
+        final SwitchMaterial switchMockHold = content.findViewById(R.id.switchMockHold);
+        switchMockHold.setChecked(prefs.isMockHoldLastEnabled());
+        switchMockHold.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                prefs.setMockHoldLastEnabled(isChecked);
+                // 正在接收时切换：重启服务流水线使其立即生效
+                if (ReceiverService.isRunning()) {
+                    ReceiverService.start(MainActivity.this,
+                            prefs.getMode(), prefs.getLastDeviceMac());
+                }
+            }
+        });
+
         new AlertDialog.Builder(this)
                 .setTitle(R.string.settings_title)
                 .setView(content)

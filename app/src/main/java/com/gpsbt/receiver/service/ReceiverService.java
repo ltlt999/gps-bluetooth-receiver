@@ -144,12 +144,21 @@ public class ReceiverService extends Service {
     public void onCreate() {
         super.onCreate();
         state = ReceiverState.get();
-        injector = new MockLocationInjector(this, new MockLocationInjector.ErrorListener() {
+        injector = new MockLocationInjector(this, new MockLocationInjector.Listener() {
             @Override
             public void onInjectionError(String message) {
                 LogBus.get().log(LogBus.Level.ERROR, "位置注入：" + message);
                 state.setStatusText("位置注入失败：" + message);
                 notifyStateChanged();
+            }
+
+            @Override
+            public void onHoldChanged(boolean holding) {
+                if (holding) {
+                    LogBus.get().log(LogBus.Level.WARN, "发送端暂无定位，保持最后位置注入");
+                } else {
+                    LogBus.get().log(LogBus.Level.INFO, "定位已恢复，继续使用实时位置");
+                }
             }
         });
         createChannel();
@@ -240,6 +249,7 @@ public class ReceiverService extends Service {
         startWatchdog();
         // 位置注入：用户开启且已授权（模拟位置应用）时，把收到的定位提供给其它 App
         if (Prefs.get(this).isMockInjectionEnabled()) {
+            injector.setHoldLastPosition(Prefs.get(this).isMockHoldLastEnabled());
             injector.start();
         } else {
             injector.stop();
