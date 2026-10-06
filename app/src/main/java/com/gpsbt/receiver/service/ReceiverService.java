@@ -274,6 +274,34 @@ public class ReceiverService extends Service {
             waitForBluetooth(adapter);
             return;
         }
+        if (fromBoot) {
+            // 刚开机时蓝牙栈可能还没完全就绪，立刻连接容易建立「半死」的 RFCOMM 会话
+            // （两端都显示已连接但数据不通）。等 15 秒再连，成功率明显更高。
+            state.setPhase(ReceiverState.Phase.WAITING);
+            state.setStatusText("开机自启：等待蓝牙就绪…");
+            LogBus.get().log(LogBus.Level.INFO, "开机自启：15 秒后开始连接（等待蓝牙栈就绪）");
+            notifyStateChanged();
+            refreshNotification();
+            main.postDelayed(new Runnable() {
+                @Override
+                public void run() {
+                    if (!running || link != null) {
+                        return;
+                    }
+                    BluetoothAdapter current = BluetoothAdapter.getDefaultAdapter();
+                    if (current == null) {
+                        failBluetooth();
+                        return;
+                    }
+                    if (!current.isEnabled()) {
+                        waitForBluetooth(current);
+                        return;
+                    }
+                    startTransmission(current, pendingMode, pendingMac);
+                }
+            }, 15000L);
+            return;
+        }
         startTransmission(adapter, mode, mac);
     }
 
@@ -465,7 +493,9 @@ public class ReceiverService extends Service {
         }
         stopRetry();
         retryAttempts++;
-        final long delay = retryDelaySeconds(retryAttempts);
+        // 反复「连上却收不到数据」时额外延长间隔，给蓝牙栈足够时间释放旧会话
+        final long delay = Math.min(30L,
+                retryDelaySeconds(retryAttempts) + 5L * emptyRounds);
         state.setPhase(ReceiverState.Phase.WAITING);
         state.setStatusText(reason + "，" + delay + " 秒后重连（第 " + retryAttempts + " 次）");
         LogBus.get().log(LogBus.Level.WARN, reason + "，" + delay + " 秒后重连");
