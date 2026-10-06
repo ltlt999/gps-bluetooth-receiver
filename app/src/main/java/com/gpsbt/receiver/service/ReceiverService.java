@@ -75,9 +75,11 @@ public class ReceiverService extends Service {
     private volatile long watchdogDataAt;
     private volatile long connectedAtMs;
     private volatile boolean noDataHintShown;
+    /** 连续「重连后仍无数据」的轮数，用于升级提示。 */
+    private volatile int emptyRounds;
 
     /** 已连接状态下超过该时长没有任何数据到达，视为链路假死，强制重连。 */
-    private static final long DATA_TIMEOUT_MS = 45000L;
+    private static final long DATA_TIMEOUT_MS = 30000L;
 
     /** 重连间隔：2、4、6…秒，封顶 30 秒。 */
     static long retryDelaySeconds(int attempts) {
@@ -248,6 +250,7 @@ public class ReceiverService extends Service {
         state.setStartedAt(System.currentTimeMillis());
         pendingMode = mode;
         pendingMac = mac;
+        emptyRounds = 0;
         startWatchdog();
         // 位置注入：用户开启且已授权（模拟位置应用）时，把收到的定位提供给其它 App
         if (Prefs.get(this).isMockInjectionEnabled()) {
@@ -528,10 +531,21 @@ public class ReceiverService extends Service {
                 if (bytes != watchdogBytes) {
                     watchdogBytes = bytes;
                     watchdogDataAt = now;
+                    emptyRounds = 0;
                     return;
                 }
                 if (now - watchdogDataAt > DATA_TIMEOUT_MS) {
-                    LogBus.get().log(LogBus.Level.WARN, "已连接但超过 45 秒无数据，判定链路假死，强制重连");
+                    emptyRounds++;
+                    LogBus.get().log(LogBus.Level.WARN,
+                            "已连接但超过 30 秒无数据，判定链路假死，强制重连（第 "
+                                    + emptyRounds + " 次）");
+                    if (emptyRounds >= 3) {
+                        // 反复重连都收不到数据：多半是发送端侧链路异常，给出可操作建议
+                        LogBus.get().log(LogBus.Level.WARN,
+                                "连续多次重连均无数据：建议在发送端「停止传输」后重新开始");
+                        state.setStatusText("连续重连无数据：请在发送端停止后重新开始传输");
+                        notifyStateChanged();
+                    }
                     scheduleReconnect("连接无数据超时");
                 }
             }
