@@ -33,7 +33,7 @@ public final class LogBus {
 
     public static final int MAX_ENTRIES = 400;
 
-    private static final Handler MAIN = new Handler(Looper.getMainLooper());
+    private static final Handler MAIN = createMainHandler();
 
     private static volatile LogBus instance;
 
@@ -41,6 +41,16 @@ public final class LogBus {
     private final List<Listener> listeners = new ArrayList<>();
 
     private LogBus() {
+    }
+
+    /** 主线程 Handler；无主线程环境（单元测试）返回 null，回调退化为同步执行。 */
+    private static Handler createMainHandler() {
+        try {
+            Looper looper = Looper.getMainLooper();
+            return looper == null ? null : new Handler(looper);
+        } catch (RuntimeException e) {
+            return null;
+        }
     }
 
     public static LogBus get() {
@@ -63,14 +73,19 @@ public final class LogBus {
             entries.pollFirst();
         }
         entries.addLast(entry);
+        final Handler handler = MAIN;
         for (final Listener listener : snapshotListeners()) {
             // 监听器多为 UI，统一投递到主线程，避免后台线程日志导致跨线程崩溃
-            MAIN.post(new Runnable() {
-                @Override
-                public void run() {
-                    listener.onLog(entry);
-                }
-            });
+            if (handler != null) {
+                handler.post(new Runnable() {
+                    @Override
+                    public void run() {
+                        listener.onLog(entry);
+                    }
+                });
+            } else {
+                listener.onLog(entry);
+            }
         }
     }
 
