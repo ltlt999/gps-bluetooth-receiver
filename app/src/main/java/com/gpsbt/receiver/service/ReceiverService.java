@@ -425,7 +425,11 @@ public class ReceiverService extends Service {
         @Override
         public void onSentence(String sentence) {
             state.setSentences(state.sentences() + 1);
-            LogBus.get().log(LogBus.Level.DATA, sentence);
+            // 卫星语句（GSV/GSA）单独分类，便于在日志里与普通信息分开查看
+            String upper = sentence.toUpperCase(java.util.Locale.US);
+            LogBus.Level level = upper.contains("GSV") || upper.contains("GSA")
+                    ? LogBus.Level.SAT : LogBus.Level.DATA;
+            LogBus.get().log(level, sentence);
             // 高频语句不需要每条都刷新界面，交给 onFix / onSatellites 触发
         }
 

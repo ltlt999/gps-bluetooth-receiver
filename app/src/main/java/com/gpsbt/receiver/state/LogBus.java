@@ -12,7 +12,8 @@ import java.util.List;
 /** 内存日志总线：任意线程写，监听器回调固定在主线程执行。 */
 public final class LogBus {
 
-    public enum Level { INFO, WARN, ERROR, DATA }
+    /** 日志级别：SAT 为卫星相关语句（GSV/GSA），DATA 为其它原始语句。 */
+    public enum Level { INFO, WARN, ERROR, DATA, SAT }
 
     public static final class Entry {
         public final long time;

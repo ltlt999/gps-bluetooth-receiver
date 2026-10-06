@@ -505,6 +505,36 @@ public class MainActivity extends AppCompatActivity
         rvLog.setAdapter(logAdapter);
         rvLog.scrollToPosition(Math.max(0, logAdapter.getItemCount() - 1));
 
+        // 分类筛选：全部 / 普通 / 卫星 / 数据
+        final MaterialButton[] filterButtons = {
+                content.findViewById(R.id.btnLogAll),
+                content.findViewById(R.id.btnLogNormal),
+                content.findViewById(R.id.btnLogSatellite),
+                content.findViewById(R.id.btnLogData)
+        };
+        final LogAdapter.Filter[] filterValues = {
+                LogAdapter.Filter.ALL, LogAdapter.Filter.NORMAL,
+                LogAdapter.Filter.SATELLITE, LogAdapter.Filter.DATA
+        };
+        for (int i = 0; i < filterButtons.length; i++) {
+            final int index = i;
+            filterButtons[i].setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    logAdapter.setFilter(filterValues[index]);
+                    for (int k = 0; k < filterButtons.length; k++) {
+                        filterButtons[k].setTextColor(getColor(k == index
+                                ? R.color.color_primary : R.color.color_text_secondary));
+                    }
+                    rvLog.scrollToPosition(Math.max(0, logAdapter.getItemCount() - 1));
+                }
+            });
+        }
+        for (int k = 0; k < filterButtons.length; k++) {
+            filterButtons[k].setTextColor(getColor(k == 0
+                    ? R.color.color_primary : R.color.color_text_secondary));
+        }
+
         final LogBus.Listener listener = new LogBus.Listener() {
             @Override
             public void onLog(LogBus.Entry entry) {
