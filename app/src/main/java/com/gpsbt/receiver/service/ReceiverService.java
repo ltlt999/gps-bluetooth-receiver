@@ -255,9 +255,12 @@ public class ReceiverService extends Service {
         // 位置注入：用户开启且已授权（模拟位置应用）时，把收到的定位提供给其它 App
         if (Prefs.get(this).isMockInjectionEnabled()) {
             injector.setHoldLastPosition(Prefs.get(this).isMockHoldLastEnabled());
-            injector.start();
+            boolean ok = injector.start();
+            state.setMockStatus(ok ? "注入已启用（模拟定位源：" + injector.providerCount()
+                    + " 个），等待定位数据…" : "注入未生效（见日志）");
         } else {
             injector.stop();
+            state.setMockStatus("未启用");
         }
 
         if (!adapter.isEnabled()) {
@@ -443,6 +446,7 @@ public class ReceiverService extends Service {
             state.setFix(fix);
             if (Prefs.get(ReceiverService.this).isMockInjectionEnabled()) {
                 injector.inject(fix);
+                updateMockStatus();
             }
             state.notifyChanged();
         }
@@ -593,6 +597,28 @@ public class ReceiverService extends Service {
         if (state != null) {
             state.notifyChanged();
         }
+    }
+
+    /** 刷新「位置注入」运行状态：设置弹窗据此核实注入是否真正生效。 */
+    private void updateMockStatus() {
+        if (injector == null) {
+            return;
+        }
+        if (!injector.isActive()) {
+            state.setMockStatus("注入未生效（未授权或被系统拒绝，见日志）");
+            return;
+        }
+        NmeaParser.Fix last = injector.lastFix();
+        String time = new java.text.SimpleDateFormat("HH:mm:ss", java.util.Locale.US)
+                .format(new java.util.Date(injector.lastInjectAt()));
+        StringBuilder sb = new StringBuilder("已注入 ")
+                .append(injector.providerCount()).append(" 个定位源 · 最近 ")
+                .append(time);
+        if (last != null) {
+            sb.append(" · ").append(Formatters.latitude(last.latitude))
+                    .append(" ").append(Formatters.longitude(last.longitude));
+        }
+        state.setMockStatus(sb.toString());
     }
 
     // ---------- 通知 ----------

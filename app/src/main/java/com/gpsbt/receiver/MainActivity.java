@@ -301,24 +301,26 @@ public class MainActivity extends AppCompatActivity
         }
     }
 
-    /** 设置弹窗里展示模拟位置授权状态与下一步指引。 */
+    /** 设置弹窗里展示模拟位置授权状态、注入运行状态与下一步指引。 */
     private void refreshMockStatus(TextView tvMockStatus) {
         Boolean allowed = mockLocationAllowed();
-        tvMockStatus.setVisibility(View.VISIBLE);
+        StringBuilder sb = new StringBuilder();
         if (allowed != null && allowed) {
-            tvMockStatus.setText("√ 已授权为模拟位置应用，可以注入");
-            tvMockStatus.setTextColor(0xFF00E5C7);
-            return;
-        }
-        if (allowed != null) {
-            tvMockStatus.setText("× 尚未授权。步骤：开发者选项 → 选择模拟位置信息应用 → 本应用；"
+            sb.append("√ 已授权为模拟位置应用");
+        } else if (allowed != null) {
+            sb.append("× 尚未授权。步骤：开发者选项 → 选择模拟位置信息应用 → 本应用；"
                     + "若列表中找不到本应用，可在电脑 adb 执行：\n"
                     + "adb shell appops set com.gpsbt.receiver MOCK_LOCATION allow");
-            tvMockStatus.setTextColor(0xFFFF8A3D);
-            return;
+        } else {
+            sb.append("当前系统无法检测授权状态，请直接在开发者选项中设置");
         }
-        tvMockStatus.setText("当前系统无法检测授权状态，请直接在开发者选项中设置");
-        tvMockStatus.setTextColor(0xFFFF8A3D);
+        String runtime = state.mockStatus();
+        if (runtime != null && !runtime.isEmpty()) {
+            sb.append("\n\n注入状态：").append(runtime);
+        }
+        tvMockStatus.setVisibility(View.VISIBLE);
+        tvMockStatus.setText(sb.toString());
+        tvMockStatus.setTextColor(allowed != null && allowed ? 0xFF00E5C7 : 0xFFFF8A3D);
     }
 
     /** 设置弹窗：开机自动接收 + 向系统注入定位。 */
@@ -394,11 +396,29 @@ public class MainActivity extends AppCompatActivity
             }
         });
 
-        new AlertDialog.Builder(this)
+        final AlertDialog settingsDialog = new AlertDialog.Builder(this)
                 .setTitle(R.string.settings_title)
                 .setView(content)
                 .setPositiveButton(android.R.string.ok, null)
-                .show();
+                .create();
+        // 弹窗打开期间每秒刷新注入状态，便于直接核实是否真正在注入
+        final Runnable mockStatusRefresher = new Runnable() {
+            @Override
+            public void run() {
+                if (settingsDialog.isShowing()) {
+                    refreshMockStatus(tvMockStatus);
+                    main.postDelayed(this, 1000L);
+                }
+            }
+        };
+        settingsDialog.setOnDismissListener(new android.content.DialogInterface.OnDismissListener() {
+            @Override
+            public void onDismiss(android.content.DialogInterface dialog) {
+                main.removeCallbacks(mockStatusRefresher);
+            }
+        });
+        settingsDialog.show();
+        main.postDelayed(mockStatusRefresher, 1000L);
     }
 
     private void refreshBootLog(TextView tvBootLog) {

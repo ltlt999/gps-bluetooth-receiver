@@ -10,6 +10,9 @@ import android.os.SystemClock;
 
 import com.gpsbt.receiver.nmea.NmeaParser;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /**
  * 把蓝牙收到的定位注入系统（模拟位置 / Mock Location）。
  * 需要用户在开发者选项中选择本应用为「模拟位置信息应用」；注入后平板上
@@ -37,11 +40,18 @@ public final class MockLocationInjector {
     /** 外推时长上限：超过后冻结在最后推测点，避免误差无限累积。 */
     static final long MAX_EXTRAPOLATE_MS = 90_000L;
 
+    /** 同时模拟 GPS 与网络定位源：只模拟 GPS 时，地图的「高精度定位」仍可能
+        被平板真实的 WiFi/基站网络定位抢走。 */
+    private static final String[] TEST_PROVIDERS = {
+            LocationManager.GPS_PROVIDER,
+            LocationManager.NETWORK_PROVIDER
+    };
+
     private final LocationManager locationManager;
     private final Listener listener;
     private final Handler main = new Handler(Looper.getMainLooper());
+    private final List<String> addedProviders = new ArrayList<>();
 
-    private boolean providerAdded;
     private boolean failed;
     private boolean holdLast;
     private boolean holding;
@@ -52,7 +62,7 @@ public final class MockLocationInjector {
     private final Runnable holdLoop = new Runnable() {
         @Override
         public void run() {
-            if (!providerAdded) {
+            if (addedProviders.isEmpty()) {
                 return;
             }
             long now = System.currentTimeMillis();
@@ -88,60 +98,102 @@ public final class MockLocationInjector {
         }
     }
 
-    /** 添加 GPS 测试提供者。返回 false 表示被系统拒绝（通常是未选为模拟位置应用）。 */
+    /** 添加测试提供者（GPS + 网络）。返回 false 表示被系统拒绝（通常是未选为模拟位置应用）。 */
     public synchronized boolean start() {
         failed = false;
         holding = false;
         lastFix = null;
+        lastInjectAt = 0;
         if (locationManager == null) {
             reportError("设备不支持定位服务，无法注入");
             return false;
         }
-        try {
-            locationManager.addTestProvider(LocationManager.GPS_PROVIDER,
-                    false, false, false, false, true, true, true,
-                    Criteria.POWER_LOW, Criteria.ACCURACY_FINE);
-            providerAdded = true;
-        } catch (IllegalArgumentException e) {
-            // 之前添加过尚未移除，视为已就绪
-            providerAdded = true;
-        } catch (SecurityException e) {
-            reportError("请在开发者选项「选择模拟位置信息应用」中选择本应用");
+        addedProviders.clear();
+        if (!addProvider(LocationManager.GPS_PROVIDER)) {
             return false;
         }
-        try {
-            locationManager.setTestProviderEnabled(LocationManager.GPS_PROVIDER, true);
-        } catch (SecurityException e) {
-            reportError("请在开发者选项「选择模拟位置信息应用」中选择本应用");
-            return false;
-        }
+        // 网络提供者是可选的：部分 ROM 不支持其测试注入，跳过不影响 GPS 注入
+        addProvider(LocationManager.NETWORK_PROVIDER);
         main.removeCallbacks(holdLoop);
         main.postDelayed(holdLoop, HOLD_REFRESH_MS);
         return true;
     }
 
-    /** 移除测试提供者，恢复平板真实 GPS。 */
+    private boolean addProvider(String provider) {
+        try {
+            locationManager.addTestProvider(provider,
+                    false, false, false, false, true, true, true,
+                    Criteria.POWER_LOW, Criteria.ACCURACY_FINE);
+        } catch (IllegalArgumentException e) {
+            // 之前添加过尚未移除，视为已就绪
+        } catch (SecurityException e) {
+            if (LocationManager.GPS_PROVIDER.equals(provider)) {
+                reportError("请在开发者选项「选择模拟位置信息应用」中选择本应用");
+                return false;
+            }
+            return false;
+        } catch (RuntimeException e) {
+            if (LocationManager.GPS_PROVIDER.equals(provider)) {
+                reportError("无法创建测试定位提供者：" + e.getMessage());
+                return false;
+            }
+            return false;
+        }
+        try {
+            locationManager.setTestProviderEnabled(provider, true);
+        } catch (RuntimeException e) {
+            if (LocationManager.GPS_PROVIDER.equals(provider)) {
+                reportError("请在开发者选项「选择模拟位置信息应用」中选择本应用");
+                return false;
+            }
+            return false;
+        }
+        addedProviders.add(provider);
+        return true;
+    }
+
+    /** 注入是否已生效。 */
+    public synchronized boolean isActive() {
+        return !addedProviders.isEmpty() && !failed;
+    }
+
+    /** 当前模拟的定位源数量（1=仅 GPS，2=GPS+网络）。 */
+    public synchronized int providerCount() {
+        return addedProviders.size();
+    }
+
+    public synchronized long lastInjectAt() {
+        return lastInjectAt;
+    }
+
+    public synchronized NmeaParser.Fix lastFix() {
+        return lastFix;
+    }
+
+    /** 移除测试提供者，恢复平板真实定位。 */
     public synchronized void stop() {
         main.removeCallbacks(holdLoop);
         holding = false;
         lastFix = null;
-        if (!providerAdded || locationManager == null) {
-            providerAdded = false;
+        if (locationManager == null || addedProviders.isEmpty()) {
+            addedProviders.clear();
             return;
         }
-        try {
-            locationManager.setTestProviderEnabled(LocationManager.GPS_PROVIDER, false);
-            locationManager.removeTestProvider(LocationManager.GPS_PROVIDER);
-        } catch (SecurityException | IllegalArgumentException ignored) {
-            // 已被系统清理，忽略
+        for (String provider : addedProviders) {
+            try {
+                locationManager.setTestProviderEnabled(provider, false);
+                locationManager.removeTestProvider(provider);
+            } catch (SecurityException | IllegalArgumentException ignored) {
+                // 已被系统清理，忽略
+            }
         }
-        providerAdded = false;
+        addedProviders.clear();
         failed = false;
     }
 
     /** 注入一次定位；仅注入有效定位，精度由 HDOP 估算。 */
     public synchronized void inject(NmeaParser.Fix fix) {
-        if (!providerAdded || failed || locationManager == null || !fix.valid) {
+        if (failed || locationManager == null || !fix.valid || addedProviders.isEmpty()) {
             return;
         }
         if (Double.isNaN(fix.latitude) || Double.isNaN(fix.longitude)) {
@@ -158,30 +210,33 @@ public final class MockLocationInjector {
 
     /** 按给定定位写一次测试提供者位置（时间戳刷新为当前时刻）。 */
     private synchronized void injectLocation(NmeaParser.Fix fix, float accuracyM) {
-        if (!providerAdded || failed || locationManager == null) {
+        if (failed || locationManager == null || addedProviders.isEmpty()) {
             return;
         }
-        try {
-            Location location = new Location(LocationManager.GPS_PROVIDER);
-            location.setLatitude(fix.latitude);
-            location.setLongitude(fix.longitude);
-            if (!Double.isNaN(fix.altitudeM)) {
-                location.setAltitude(fix.altitudeM);
+        for (String provider : addedProviders) {
+            try {
+                Location location = new Location(provider);
+                location.setLatitude(fix.latitude);
+                location.setLongitude(fix.longitude);
+                if (!Double.isNaN(fix.altitudeM)) {
+                    location.setAltitude(fix.altitudeM);
+                }
+                if (!Double.isNaN(fix.speedMps)) {
+                    location.setSpeed((float) fix.speedMps);
+                }
+                if (!Double.isNaN(fix.courseDeg)) {
+                    location.setBearing((float) fix.courseDeg);
+                }
+                location.setAccuracy(accuracyM);
+                location.setTime(System.currentTimeMillis());
+                location.setElapsedRealtimeNanos(SystemClock.elapsedRealtimeNanos());
+                locationManager.setTestProviderLocation(provider, location);
+                lastInjectAt = System.currentTimeMillis();
+            } catch (SecurityException e) {
+                failed = true;
+                reportError("注入被系统拒绝，已停止：" + e.getMessage());
+                return;
             }
-            if (!Double.isNaN(fix.speedMps)) {
-                location.setSpeed((float) fix.speedMps);
-            }
-            if (!Double.isNaN(fix.courseDeg)) {
-                location.setBearing((float) fix.courseDeg);
-            }
-            location.setAccuracy(accuracyM);
-            location.setTime(System.currentTimeMillis());
-            location.setElapsedRealtimeNanos(SystemClock.elapsedRealtimeNanos());
-            locationManager.setTestProviderLocation(LocationManager.GPS_PROVIDER, location);
-            lastInjectAt = System.currentTimeMillis();
-        } catch (SecurityException e) {
-            failed = true;
-            reportError("注入被系统拒绝，已停止：" + e.getMessage());
         }
     }
 

@@ -50,6 +50,8 @@ public final class ReceiverState {
     private volatile long startedAt;
     private volatile long lastSentenceAt;
     private volatile long lastFixAt;
+    /** 位置注入的运行状态文案（设置弹窗展示，便于核实注入是否真正生效）。 */
+    private volatile String mockStatus = "";
 
     private ReceiverState() {
     }
@@ -120,6 +122,14 @@ public final class ReceiverState {
 
     public long lastFixAt() {
         return lastFixAt;
+    }
+
+    public String mockStatus() {
+        return mockStatus;
+    }
+
+    public void setMockStatus(String value) {
+        mockStatus = value == null ? "" : value;
     }
 
     // ---------- 写入（服务调用） ----------
