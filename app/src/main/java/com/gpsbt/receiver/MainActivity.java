@@ -323,6 +323,19 @@ public class MainActivity extends AppCompatActivity
         tvMockStatus.setTextColor(allowed != null && allowed ? 0xFF00E5C7 : 0xFFFF8A3D);
     }
 
+    /** 版本号文案：从系统读取，随构建自动更新。 */
+    private String versionText() {
+        try {
+            android.content.pm.PackageInfo info =
+                    getPackageManager().getPackageInfo(getPackageName(), 0);
+            long code = Build.VERSION.SDK_INT >= Build.VERSION_CODES.P
+                    ? info.getLongVersionCode() : info.versionCode;
+            return getString(R.string.settings_version, info.versionName, code);
+        } catch (Exception e) {
+            return "";
+        }
+    }
+
     /** 设置弹窗：开机自动接收 + 向系统注入定位。 */
     private void showSettingsDialog() {
         View content = getLayoutInflater().inflate(R.layout.dialog_settings, null);
@@ -339,6 +352,9 @@ public class MainActivity extends AppCompatActivity
         switchMock.setChecked(prefs.isMockInjectionEnabled());
         final TextView tvMockStatus = content.findViewById(R.id.tvMockStatus);
         refreshMockStatus(tvMockStatus);
+
+        TextView tvVersion = content.findViewById(R.id.tvVersion);
+        tvVersion.setText(versionText());
         switchMock.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {

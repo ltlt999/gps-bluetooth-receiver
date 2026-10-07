@@ -80,6 +80,7 @@
 
     <!-- 设置 -->
     <string name="settings_title">设置</string>
+    <string name="settings_version">GPS接收器 %1$s（%2$d）</string>
     <string name="auto_start_title">开机自动开始接收</string>
     <string name="auto_start_summary">开机后按上次的模式和设备自动开始接收</string>
     <string name="mock_title">向系统注入定位</string>

@@ -149,5 +149,15 @@
             android:fontFamily="monospace"
             android:textIsSelectable="true"
             android:textSize="11sp" />
+
+        <TextView
+            android:id="@+id/tvVersion"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:layout_marginBottom="4dp"
+            android:gravity="center"
+            android:textColor="@color/color_text_disabled"
+            android:textSize="12sp" />
     </LinearLayout>
 </ScrollView>
